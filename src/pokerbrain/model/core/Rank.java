@@ -32,7 +32,7 @@ public enum Rank {
 	private final char symbol;
 	
 	//Maps pré-calculées pour complexité en O(1)
-	private static final Map<char,Rank> SYMBOL_MAP = new HashMap<>();
+	private static final Map<Character,Rank> SYMBOL_MAP = new HashMap<>();
 	private static final Map<Integer,Rank> VALUE_MAP = new HashMap<>();
 	
 	//Méthode d'accès

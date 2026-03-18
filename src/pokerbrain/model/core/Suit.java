@@ -12,7 +12,7 @@ public enum Suit {
     SPADES('s', '♠', "Spades");
 	
 	//Constructeur
-	Suit(char lettre, char symbol, String name){
+	Suit(char code, char symbol, String name){
 		this.code = code;
 		this.symbol = symbol;
 		this.name = name;
