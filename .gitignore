@@ -1,0 +1,16 @@
+#Eclipse
+/bin/
+.classpath
+.project
+.settings/
+
+#Compilled
+*.class
+
+#Database
+*.db
+
+#Log
+*.log
+
+
