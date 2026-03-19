@@ -6,7 +6,7 @@ stages:
 build:
   stage: build
   script:
-    - mvn compile
+  - mvn compile -Djavafx.platform=linux
   cache:
     paths:
       - .m2/repository
