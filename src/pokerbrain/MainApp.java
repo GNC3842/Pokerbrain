@@ -1,0 +1,40 @@
+package pokerbrain;
+
+import javafx.application.Application;
+import javafx.fxml.FXMLLoader;
+import javafx.scene.Parent;
+import javafx.scene.Scene;
+import javafx.stage.Stage;
+
+import java.io.IOException;
+
+public class MainApp extends Application {
+
+    private static Stage primaryStage;
+
+    @Override
+    public void start(Stage stage) throws IOException {
+        primaryStage = stage;
+        switchScene("fxml/MainMenu.fxml");
+        stage.setTitle("PokerBrain");
+        stage.setMinWidth(900);
+        stage.setMinHeight(600);
+        stage.show();
+    }
+
+    public static void switchScene(String fxmlPath) throws IOException {
+        FXMLLoader loader = new FXMLLoader(
+            MainApp.class.getResource("/pokerbrain/view/" + fxmlPath)
+        );
+        Parent root = loader.load();
+        primaryStage.setScene(new Scene(root, 1200, 800));
+    }
+
+    public static Stage getPrimaryStage() {
+        return primaryStage;
+    }
+
+    public static void main(String[] args) {
+        launch(args);
+    }
+}
