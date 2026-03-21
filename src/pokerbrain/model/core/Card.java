@@ -73,12 +73,7 @@ public class Card implements Comparable<Card> {
 	
 	//Vérifie si 2 cartes ont le meme rang
 	public boolean isSameRank(Card other) {
-		return this.rank == other.rank;
+		return this.getRank() == other.getRank();
 	}
-	
-	
-	
-	
-	
 	
 }

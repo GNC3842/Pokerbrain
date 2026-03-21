@@ -32,7 +32,7 @@ public enum Suit {
 	}
 	
 	public char getSymbol() {
-		return this.getSymbol();
+		return this.symbol;
 	}
 	
 	public String getName() {

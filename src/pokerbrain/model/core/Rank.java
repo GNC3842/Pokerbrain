@@ -69,4 +69,23 @@ public enum Rank {
 		Rank rank = VALUE_MAP.get(value);
 		return rank;
 	}
+	
+	public static String getDisplayName(char symbol) {
+		Rank rank = SYMBOL_MAP.get(Character.toUpperCase(symbol));
+		if (rank == null) {
+			throw new IllegalArgumentException("Symbol inconnu : " + symbol);
+		}
+		switch (rank) {
+		case ACE:   return "As";
+		case KING:  return "Roi";
+		case QUEEN: return "Dame";
+		case JACK:  return "Valet";
+		case TEN:   return "Dix";
+		default:    return String.valueOf(rank.getValue());
+		}
+	}
+		@Override
+		public String toString() {
+			return String.valueOf(this.symbol);
+		}
 }
