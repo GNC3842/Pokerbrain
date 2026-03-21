@@ -1,5 +1,7 @@
 package pokerbrain.model.game;
 
+//Voir le site de PokerStar pour plus de détails
+
 import java.util.*;
 
 /* Assigne les positions aux joueurs selon leur nombre (2 a 10)
