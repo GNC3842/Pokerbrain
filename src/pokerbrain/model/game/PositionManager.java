@@ -40,7 +40,7 @@ public class PositionManager {
     }
 	
 	//Constructeur
-    public PositionManger(int playerCount) {
+    public PositionManager(int playerCount) {
     	if (playerCount < 2 || playerCount > 10) {
     		throw new IllegalArgumentException("Nombre de joueurs invalide : " + playerCount + " (attendu 2-10)");
     	}
@@ -66,7 +66,7 @@ public class PositionManager {
     }
     
     //savoir qui est le dealer
-    public Optionnal<Player> getDealer(List<Player> players){
+    public Optional<Player> getDealer(List<Player> players){
     	return getPlayerAtPosition(players, Position.BTN);
     }
     

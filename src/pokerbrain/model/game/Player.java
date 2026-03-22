@@ -10,7 +10,7 @@ public class Player {
 	private final String name;
 	private double stack;
 	private PlayerStatus status;
-	private List<Card> holeCard;
+	private List<Card> holeCards;
 	private Position position;
 	private int seat;
 	private double currentBet;
@@ -33,7 +33,7 @@ public class Player {
 		this.stack = stack;
 		
 		this.status = PlayerStatus.ACTIVE;
-		this.holeCard = new ArrayList<>();
+		this.holeCards = new ArrayList<>();
 		this.currentBet = 0;
 		this.hasActed = false;
 	}
