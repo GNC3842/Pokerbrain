@@ -47,7 +47,7 @@ public class Player {
 		return this.name;
 	}
 	
-	public double stack() {
+	public double getStack() {
 		return this.stack;
 	}
 	
@@ -116,16 +116,85 @@ public class Player {
     }
 	
 	//Recevoir des cartes
+	public void receiveHoleCards(Card c1, Card c2) {
+		if (c1 == null) {
+			throw new IllegalArgumentException("Carte1 ne peut pas etre null");
+		}
+		if (c2 == null) {
+			throw new IllegalArgumentException("Carte2 ne peut pas etre null");
+		}
+		this.holeCards = new ArrayList<>();
+		this.holeCards.add(new Card(c1.getRank(),c1.getSuit()));
+		this.holeCards.add(new Card(c2.getRank(),c2.getSuit()));
+	}
 	
 	//Nettoyer les cartes
+	public void clearHoleCards() {
+		this.holeCards = new ArrayList<>();
+	}
 	
 	//AJouter des jetons a la stack
+	public void addToStack(double amount) {
+		if (amount < 0) {
+			throw new IllegalArgumentException("Amount ne peut pas etre négatif");
+		}
+		this.stack = this.stack + amount;
+		if(this.getStatus() == PlayerStatus.ALL_IN && this.stack > 0) {
+			this.setStatus(PlayerStatus.ACTIVE);
+		}
+	}
 	
 	//Retirer des jetons à la stack
+	public void removeFromStack(double amount) {
+		if (amount < 0) {
+			throw new IllegalArgumentException("Amount ne peut pas etre négatif");
+		}
+		if (amount > this.stack) {
+			throw new IllegalArgumentException("Stack insuffisant");
+		}
+		this.stack = this.stack - amount;
+		if (this.stack == 0) {
+			this.setStatus(PlayerStatus.ALL_IN);
+		}
+	}
 	
 	//Renvoyer l'état du joeuru
+	public boolean isActive() {
+		return this.getStatus()== PlayerStatus.ACTIVE;
+	}
+	
+	public boolean isAllIn() {
+		return this.getStatus() == PlayerStatus.ALL_IN;
+	}
+	
+	public boolean isFolded() {
+		return this.getStatus() == PlayerStatus.FOLDED;
+	}
+	
+	public boolean isOut() {
+		return this.getStatus() == PlayerStatus.OUT;
+	}
+	
+	public boolean canAct() {
+		return this.isActive() && !hasActed();
+	}
 	
 	//Réinitialiser l'etat du joueur après une nouvelle main
-	
+	public void resetForNewHand() {
+		if (!isOut()) {
+			this.setStatus(PlayerStatus.ACTIVE);
+		}
+		this.clearHoleCards();
+		this.setCurrentBet(0);
+		this.setHasActed(false);
+		this.position = null;
+	}
 	//toString classique
+	@Override
+	public String toString() {
+		return getName() + " (stack=" + getStack() + ", status=" + getStatus()
+        + (getPosition() != null ? ", pos=" + getPosition() : "") + ")";
+	}
 }
+
+
