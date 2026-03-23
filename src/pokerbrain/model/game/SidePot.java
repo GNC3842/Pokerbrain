@@ -3,10 +3,10 @@ package pokerbrain.model.game;
 import java.util.*;
 
 public class SidePot {
-	private final double amount;
+	private final int amount;
 	private final List<Player> eligiblePlayers;
 	
-	public SidePot(double amount, List<Player> eligiblePlayers) {
+	public SidePot(int amount, List<Player> eligiblePlayers) {
 		if(amount < 0) {
 			throw new IllegalArgumentException("Amount ne peut pas etre négatif");
 		}
@@ -18,7 +18,7 @@ public class SidePot {
 	}
 	
 	//Getters comme dans Pot.java
-	public double getAmount() {
+	public int getAmount() {
 		return this.amount;
 	}
 	

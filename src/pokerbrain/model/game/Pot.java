@@ -7,7 +7,7 @@ import java.util.*;
  */
 
 public class Pot {
-	private double amount;
+	private int amount;
 	private final List<Player> eligiblePlayers;
 	
 	//COnstructeur
@@ -20,7 +20,7 @@ public class Pot {
 	}
 	
 	//Ajouter au pot
-	public void addAmount(double amount) {
+	public void addAmount(int amount) {
 		if (amount < 0) {
 			throw new IllegalArgumentException("Amount ne peut pas etre négatif");
 		}
@@ -28,7 +28,7 @@ public class Pot {
 	}
 	
 	//Récupere le pot
-	public double getPot() {
+	public int getPot() {
 		return this.amount;
 	}
 	

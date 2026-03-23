@@ -7,12 +7,12 @@ package pokerbrain.model.game;
 public class Action {
 	
 	private final Player player;
-	private final double amount;
+	private final int amount;
 	private final ActionType type;
 	private final BettingRound round;
 	
 	//Constructeur complet
-	public Action(Player player, ActionType type, double amount, BettingRound round) {
+	public Action(Player player, ActionType type, int amount, BettingRound round) {
 		if(player == null) {
 			throw new IllegalArgumentException("Player ne peut pas etre null");
 		}
@@ -50,7 +50,7 @@ public class Action {
 		return this.player;
 	}
 	
-	public double getAmount() {
+	public int getAmount() {
 		return this.amount;
 	}
 	

@@ -8,16 +8,16 @@ import java.util.*;
 public class Player {
 	private final String id;
 	private final String name;
-	private double stack;
+	private int stack;
 	private PlayerStatus status;
 	private List<Card> holeCards;
 	private Position position;
 	private int seat;
-	private double currentBet;
+	private int currentBet;
 	private boolean hasActed;
 	
 	//COnstructeur
-	public Player(String id, String name, double stack) {
+	public Player(String id, String name, int stack) {
 		if (id == null) {
 			throw new IllegalArgumentException("id ne peut pas etre null");
 		}
@@ -47,7 +47,7 @@ public class Player {
 		return this.name;
 	}
 	
-	public double getStack() {
+	public int getStack() {
 		return this.stack;
 	}
 	
@@ -59,7 +59,7 @@ public class Player {
 		return new ArrayList<>(holeCards);
 	}
 	
-	public double getCurrentBet() {
+	public int getCurrentBet() {
 		return this.currentBet;
 	}
 	
@@ -76,7 +76,7 @@ public class Player {
 	}
 	
 	//Liste des setters
-	public void setStack(double stack) {
+	public void setStack(int stack) {
 		if (stack < 0) {
 			throw new IllegalArgumentException("Stack ne peut pas être négatif : " + stack);
 		}
@@ -104,7 +104,7 @@ public class Player {
 		this.seat = seat;
 	}
 	
-	public void setCurrentBet(double bet) {
+	public void setCurrentBet(int bet) {
 		if (bet < 0) {
 			throw new IllegalArgumentException("Bet ne peut pas etre négatif");
 		}
@@ -134,7 +134,7 @@ public class Player {
 	}
 	
 	//AJouter des jetons a la stack
-	public void addToStack(double amount) {
+	public void addToStack(int amount) {
 		if (amount < 0) {
 			throw new IllegalArgumentException("Amount ne peut pas etre négatif");
 		}
@@ -145,7 +145,7 @@ public class Player {
 	}
 	
 	//Retirer des jetons à la stack
-	public void removeFromStack(double amount) {
+	public void removeFromStack(int amount) {
 		if (amount < 0) {
 			throw new IllegalArgumentException("Amount ne peut pas etre négatif");
 		}
