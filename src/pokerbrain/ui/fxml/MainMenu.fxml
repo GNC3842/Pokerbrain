@@ -9,7 +9,7 @@
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="pokerbrain.view.MainMenuController"
+            fx:controller="pokerbrain.ui.MenuController"
             style="-fx-background-color: #0d3b1e;">
 
     <top>
@@ -31,19 +31,19 @@
                            -fx-background-radius: 8px;"
                     onAction="#onPlayGame"/>
 
-            <Button text="⏮  Replay d'une main"
-                    prefWidth="340" prefHeight="60"
-                    style="-fx-font-size: 18px; -fx-font-weight: bold;
-                           -fx-background-color: #2980b9; -fx-text-fill: white;
-                           -fx-background-radius: 8px;"
-                    onAction="#onReplay"/>
-
-            <Button text="📊  Analyseur de leaks"
+<Button text="📊  Analyseur de leaks"
                     prefWidth="340" prefHeight="60"
                     style="-fx-font-size: 18px; -fx-font-weight: bold;
                            -fx-background-color: #8e44ad; -fx-text-fill: white;
                            -fx-background-radius: 8px;"
                     onAction="#onLeakAnalyzer"/>
+
+            <Button text="📈  Statistiques"
+                    prefWidth="340" prefHeight="60"
+                    style="-fx-font-size: 18px; -fx-font-weight: bold;
+                           -fx-background-color: #d35400; -fx-text-fill: white;
+                           -fx-background-radius: 8px;"
+                    onAction="#onStatistics"/>
         </VBox>
     </center>
 

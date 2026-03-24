@@ -59,7 +59,7 @@ public class Action {
 	}
 	
 	//toString
-	@Overrride
+	@Override
 	public String toString() {
 		if(this.getType().involveMoney()) {
 			return getRound()+ " - "+ getPlayer().getName()+": "+getType()+" "+getAmount();
