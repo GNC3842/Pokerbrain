@@ -54,9 +54,14 @@ public class Card implements Comparable<Card> {
 	}
 	
 	//Egalité stricte
+	@Override
 	public boolean equals(Object o) {
-		if (this == o) return true;
-		if (!(o instanceof Card)) return false;
+		if (this == o) {
+			return true;
+		}
+		if (!(o instanceof Card)) {
+			return false;
+		}
 		Card other = (Card) o;
 		return rank == other.getRank() && suit == other.getSuit(); 
 	}

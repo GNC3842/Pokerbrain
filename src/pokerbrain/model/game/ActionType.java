@@ -27,7 +27,7 @@ public enum ActionType {
     	return this.aggressive;
     }
     
-    public boolean involveMoney() {
+    public boolean involvesMoney() {
     	return this.involvesMoney;
     }
 }

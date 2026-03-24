@@ -83,6 +83,14 @@ public class Deck {
 		cards.retainAll(toKeep);
 	}
 	
+	public void burn() {
+		if (cards.isEmpty()) {
+			throw new IllegalStateException("Impossible de brûler une carte : deck vide");
+		}
+		Card burned = cards.remove(cards.size() - 1);
+		dealtCards.add(burned);
+	}
+	
 	public int getRemainingSize() {
 		return cards.size();
 	}

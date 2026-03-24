@@ -180,7 +180,7 @@ public class PotManager {
     	for(Player p : players) {
     		List<Card> sevenCards = new ArrayList<>(board);
     		sevenCards.addAll(p.getHoleCards());
-    		HandRank rank = HandEvaluator.evaluateBestHand(sevenCards));
+    		HandRank rank = HandEvaluator.evaluateBestHand(sevenCards);
     		int cmp = bestRank == null ? 1 : rank.compareTo(bestRank);
     		if (cmp > 0) {
     			bestRank = rank;

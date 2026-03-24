@@ -1,22 +1,224 @@
 package pokerbrain.engine;
 
-import java.util.*;
 import pokerbrain.model.game.*;
+import java.util.*;
 
-/*
- * Gere un tour d'enchere complet: PREFLOP, FLOP, TURN ou RIVER
- * 
- * Regles:
- * 		- un joueur ne peut agir que si isActive() et !hasActed() sauf relance
- * 		- call partiel = all_in si stack insuffisant
- * 		- relance reouvre l'action aux joueurs qui ont déja parlé
- * 		- round fini quand tous les joeurus ont parlés et tous les mises égales/ALL_IN
+/**
+ * Gère un tour d'enchères complet avec montants en jetons entiers (int)
  */
 
 public class BettingRoundManager {
-	private final BettingRound round;
-	private final PotManager potManager;
-	private final int bigBlind;
-	
-	
+
+    private final BettingRound round;
+    private final PotManager   potManager;
+    private final int          bigBlind;
+
+    private List<Player> players;
+    private int          currentIndex;
+    private boolean      roundComplete;
+    private int          currentBetLevel;
+    private int          lastRaiseAmount; // montant de la dernière relance (pour min-raise)
+
+    public BettingRoundManager(BettingRound round, PotManager potManager, int bigBlind) {
+        this.round       = Objects.requireNonNull(round);
+        this.potManager  = Objects.requireNonNull(potManager);
+        this.bigBlind    = bigBlind;
+        this.roundComplete = false;
+    }
+
+    //Au début
+    public void start(List<Player> orderedPlayers, int currentBet) {
+        Objects.requireNonNull(orderedPlayers, "Players ne peut pas être null");
+        this.players         = new ArrayList<>(orderedPlayers);
+        this.currentBetLevel = currentBet;
+        this.lastRaiseAmount = currentBet; // en preflop = BB, en postflop = BB
+        this.currentIndex    = findFirstToAct();
+        for (Player p : this.players) {
+        	p.setHasActed(false);
+        }
+    }
+    
+    //Traitement dune action
+    public Action processAction(ActionType type, int amount) {
+        if (this.roundComplete) {
+        	throw new IllegalStateException("Le round " + this.round + " est déjà terminé");
+        }
+
+        Player current = getCurrentPlayer();
+        validateAction(current, type, amount);
+
+        int actualAmount = 0;
+
+        switch (type) {
+            case FOLD:
+                current.setStatus(PlayerStatus.FOLDED);
+                break;
+
+            case CHECK:
+                break;
+
+            case CALL: {
+                int callAmount = this.potManager.getCallAmount(current);
+                actualAmount   = Math.min(callAmount, current.getStack());
+                this.potManager.addBet(current, actualAmount);
+                break;
+            }
+
+            case BET: {
+                if (amount < this.bigBlind)
+                    throw new IllegalArgumentException(
+                        "Bet minimum = big blind (" + this.bigBlind + "), reçu : " + amount);
+                actualAmount = Math.min(amount, current.getStack());
+                this.potManager.addBet(current, actualAmount);
+                this.lastRaiseAmount = actualAmount;
+                this.currentBetLevel = this.potManager.getHighestBet();
+                reopenAction(this.currentIndex);
+                break;
+            }
+
+            case RAISE: {
+                // Min raise = currentBetLevel + lastRaiseAmount (règle standard Hold'em)
+                int minRaiseTo = this.currentBetLevel + Math.max(this.lastRaiseAmount, this.bigBlind);
+                if (amount < minRaiseTo)
+                    throw new IllegalArgumentException(
+                        "Raise minimum à " + minRaiseTo + ", reçu : " + amount);
+                int callAmount  = this.potManager.getCallAmount(current);
+                int raiseBy     = amount - this.currentBetLevel;
+                int totalNeeded = callAmount + raiseBy;
+                actualAmount    = Math.min(totalNeeded, current.getStack());
+                this.potManager.addBet(current, actualAmount);
+                this.lastRaiseAmount = raiseBy;
+                this.currentBetLevel = this.potManager.getHighestBet();
+                reopenAction(this.currentIndex);
+                break;
+            }
+
+            case ALL_IN: {
+                actualAmount = current.getStack();
+                this.potManager.addBet(current, actualAmount);
+                int newHighest = this.potManager.getHighestBet();
+                if (newHighest > this.currentBetLevel) {
+                    this.lastRaiseAmount = newHighest - this.currentBetLevel;
+                    this.currentBetLevel = newHighest;
+                    reopenAction(this.currentIndex);
+                }
+                break;
+            }
+        }
+
+        current.setHasActed(true);
+        Action action;
+        if(type.involvesMoney()) {
+        	action = new Action(current, type, actualAmount, this.round);
+        } else {
+        	action = new Action(current, type, this.round);
+        }
+        advance();
+        return action;
+    }
+
+    //Navigation 
+    private void advance() {
+        if (isRoundComplete()) { this.roundComplete = true; return; }
+        int start = (this.currentIndex + 1) % this.players.size();
+        for (int i = 0; i < this.players.size(); i++) {
+            int idx = (start + i) % this.players.size();
+            Player p = this.players.get(idx);
+            if (p.isActive() && !p.hasActed()) { 
+            	this.currentIndex = idx; return; 
+            }
+        }
+        this.roundComplete = true;
+    }
+
+    private void reopenAction(int aggressorIdx) {
+        for (int i = 0; i < this.players.size(); i++) {
+            if (i != aggressorIdx && this.players.get(i).isActive()) {
+                this.players.get(i).setHasActed(false);
+            }
+        }
+    }
+
+    //Validation 
+    private void validateAction(Player player, ActionType type, int amount) {
+        List<ActionType> valid = getValidActions(player);
+        if (!valid.contains(type))
+            throw new IllegalArgumentException(
+                "Action invalide " + type + " pour " + player.getName()
+                + ". Actions valides : " + valid);
+    }
+
+    public List<ActionType> getValidActions(Player player) {
+        List<ActionType> valid = new ArrayList<>();
+        if (!player.isActive()) return valid;
+
+        int callAmount = this.potManager.getCallAmount(player);
+        int stack      = player.getStack();
+
+        int minRaiseTo = this.currentBetLevel + Math.max(this.lastRaiseAmount, this.bigBlind);
+        if (callAmount > 0) {
+        	valid.add(ActionType.FOLD);
+        }
+        if (callAmount == 0) {
+        	valid.add(ActionType.CHECK);
+        }
+        if (callAmount > 0 && stack > callAmount) {
+        	valid.add(ActionType.CALL);
+        }
+        if (callAmount == 0 && stack >= this.bigBlind) {
+        	valid.add(ActionType.BET);
+        }
+        if (callAmount > 0 && stack >= callAmount + (minRaiseTo - this.currentBetLevel)) {
+        	valid.add(ActionType.RAISE);
+        }
+        if (stack > 0) {
+        	valid.add(ActionType.ALL_IN);
+        }
+        return valid;
+    }
+
+    //Fin de round 
+    private boolean isRoundComplete() {
+        long activePlayers = this.players.stream().filter(Player::isActive).count();
+        if (activePlayers <= 1) return true;
+        for (Player p : this.players) {
+            if (p.isActive() && !p.hasActed()) return false;
+        }
+        return true;
+    }
+
+    private int findFirstToAct() {
+        for (int i = 0; i < this.players.size(); i++) {
+            if (this.players.get(i).isActive()) {
+            	return i;
+            }
+        }
+        return 0;
+    }
+    
+    //Getters
+    public Player getCurrentPlayer() {
+        if (this.roundComplete) {
+        	throw new IllegalStateException("Le round est terminé");
+        }
+        return this.players.get(this.currentIndex);
+    }
+
+    public boolean isComplete(){ 
+    	return this.roundComplete; 
+    }
+    public BettingRound getRound(){
+    	return this.round;
+    }
+    public int getCurrentBetLevel(){
+    	return this.currentBetLevel;
+    }
+
+    public List<Player> getActivePlayers() {
+        List<Player> active = new ArrayList<>();
+        for (Player p : this.players) {
+            if (p.isActive() || p.isAllIn()) active.add(p);
+        }
+        return active;
+    }
 }

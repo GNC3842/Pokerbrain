@@ -3,25 +3,21 @@ package pokerbrain.engine;
 import pokerbrain.model.core.*;
 import java.util.*;
 
-/*
- * Calcule la meilleur main de 5 cartes parmis 5, ou 6 ou 7
+/**
+ * Calcule la meilleure main de 5 cartes parmi 5,6 ou 7 cartes
  */
+public final class HandEvaluator {
 
-public class HandEvaluator {
-	private HandEvaluator() {};
-	
+	private HandEvaluator() {}
+
+	//Évalue la meilleure main parmi les cartes fournies (5, 6 ou 7 cartes).
 	public static HandRank evaluateBestHand(List<Card> cards) {
-		if(cards == null) {
-			throw new IllegalArgumentException("Unemain ne peut pas etre null");
-		}
-		if (cards.size() > 7 || cards.size() < 5) {
-			throw new IllegalArgumentException("Nombre de cartes invalides");
-		}
-		if(cards.size() == 5) {
-			return evaluateFiveCards(cards);
-		}
-		
-		//Crée C(n,5)
+		if (cards == null) throw new IllegalArgumentException("Cards ne peut pas être null");
+		if (cards.size() < 5 || cards.size() > 7)
+			throw new IllegalArgumentException("Nombre de cartes invalide : " + cards.size() + " (attendu 5-7)");
+		if (cards.size() == 5) return evaluateFiveCards(cards);
+
+		// Génère C(n,5) en excluant 2 cartes parmi n → 21 combos pour n=7
 		HandRank best = null;
 		int n = cards.size();
 		for (int i = 0; i < n - 1; i++) {
@@ -36,7 +32,7 @@ public class HandEvaluator {
 		}
 		return best;
 	}
-	
+
 	private static HandRank evaluateFiveCards(List<Card> five) {
 		// Rangs triés décroissant
 		List<Rank> sortedRanks = new ArrayList<>();
@@ -64,8 +60,7 @@ public class HandEvaluator {
 			if (straightHi == Rank.ACE)
 				return new HandRank(HandType.ROYAL_FLUSH,
 					rankList(Rank.ACE, Rank.KING, Rank.QUEEN, Rank.JACK, Rank.TEN));
-			return new HandRank(HandType.STRAIGHT_FLUSH,
-				rankList(straightHi, Rank.TWO, Rank.TWO, Rank.TWO, Rank.TWO));
+			return new HandRank(HandType.STRAIGHT_FLUSH, straightKickers(straightHi));
 		}
 		if (maxFreq == 4)
 			return new HandRank(HandType.FOUR_OF_KIND, kickers);
@@ -74,8 +69,7 @@ public class HandEvaluator {
 		if (flush)
 			return new HandRank(HandType.FLUSH, sortedRanks);
 		if (straight)
-			return new HandRank(HandType.STRAIGHT,
-				rankList(straightHi, Rank.TWO, Rank.TWO, Rank.TWO, Rank.TWO));
+			return new HandRank(HandType.STRAIGHT, straightKickers(straightHi));
 		if (maxFreq == 3)
 			return new HandRank(HandType.THREE_OF_KIND, kickers);
 		if (maxFreq == 2 && groups == 3)
@@ -84,7 +78,7 @@ public class HandEvaluator {
 			return new HandRank(HandType.PAIR, kickers);
 		return new HandRank(HandType.HIGH_CARD, sortedRanks);
 	}
-	
+
 	/**
 	 * Construit 5 kickers dans l'ordre (fréquence desc, rang desc).
 	 *
@@ -103,7 +97,7 @@ public class HandEvaluator {
 		return kickers;
 	}
 
-	/** Vérifie suite normale + roue (A-2-3-4-5). */
+	// Vérifie suite normale + roue (A-2-3-4-5).
 	private static boolean isStraight(List<Rank> sortedDesc) {
 		boolean normal = true;
 		for (int i = 0; i < 4; i++) {
@@ -120,11 +114,34 @@ public class HandEvaluator {
 			&& sortedDesc.get(4) == Rank.TWO;
 	}
 
-	/** Carte haute d'une suite. Roue → 5 (pas As). */
+	// Carte haute d'une suite. Roue → 5 (pas As)
 	private static Rank getStraightHigh(List<Rank> sortedDesc) {
 		if (sortedDesc.get(0) == Rank.ACE && sortedDesc.get(1) == Rank.FIVE)
 			return Rank.FIVE;
 		return sortedDesc.get(0);
+	}
+
+	/**
+	 * Calcule les 5 kickers d'une suite à partir de la carte haute.
+	 * Roue (A-2-3-4-5) : high=5 → [5, 4, 3, 2, A].
+	 * Suite normale K-high  → [K, Q, J, T, 9].
+	 */
+	private static List<Rank> straightKickers(Rank high) {
+		List<Rank> kickers = new ArrayList<>(5);
+		if (high == Rank.FIVE) {
+			// Roue : A-2-3-4-5
+			kickers.add(Rank.FIVE);
+			kickers.add(Rank.FOUR);
+			kickers.add(Rank.THREE);
+			kickers.add(Rank.TWO);
+			kickers.add(Rank.ACE);
+		} else {
+			int val = high.getValue();
+			for (int i = 0; i < 5; i++) {
+				kickers.add(Rank.fromValue(val - i));
+			}
+		}
+		return kickers;
 	}
 
 	private static List<Rank> rankList(Rank r1, Rank r2, Rank r3, Rank r4, Rank r5) {
@@ -132,5 +149,4 @@ public class HandEvaluator {
 		list.add(r1); list.add(r2); list.add(r3); list.add(r4); list.add(r5);
 		return list;
 	}
-	
 }

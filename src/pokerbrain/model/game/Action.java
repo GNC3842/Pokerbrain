@@ -26,10 +26,10 @@ public class Action {
 		this.type = type;
 		this.round = round;
 		
-		if(type.involveMoney() && amount <= 0) {
+		if(type.involvesMoney() && amount <= 0) {
 			throw new IllegalArgumentException("Amount doit etre positif pour"+type);
 		}
-		if (!type.involveMoney() && amount!=0) {
+		if (!type.involvesMoney() && amount!=0) {
 			throw new IllegalArgumentException("Amount doit etre null pour cette action:" + type);
 		}
 		this.amount = amount;
@@ -59,9 +59,9 @@ public class Action {
 	}
 	
 	//toString
-	@Overrride
+	@Override
 	public String toString() {
-		if(this.getType().involveMoney()) {
+		if(this.getType().involvesMoney()) {
 			return getRound()+ " - "+ getPlayer().getName()+": "+getType()+" "+getAmount();
 		}
 		return getRound()+ " - "+ getPlayer().getName()+": "+getType();
