@@ -21,7 +21,7 @@
         <HBox alignment="CENTER_LEFT" spacing="12"
               style="-fx-background-color: #0a2e18; -fx-padding: 14 20 14 20;">
             <Label text="📈" style="-fx-font-size: 20px;"/>
-            <Label text="Statistiques &amp; Leaks"
+            <Label text="Statistiques"
                    style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Button text="← Menu" onAction="#onBackToMenu"
