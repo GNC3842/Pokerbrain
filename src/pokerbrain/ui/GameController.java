@@ -81,7 +81,7 @@ public class GameController {
         hero = new PlayerView();
         hero.setPlayer(players.get(heroIndex));
         heroSlot.getChildren().add(hero);
-        configureRaiseSlider(players.get(heroIndex).stack());
+        configureRaiseSlider(players.get(heroIndex).getStack());
 
         List<Player> opponents = new ArrayList<>(players);
         opponents.remove(heroIndex);
