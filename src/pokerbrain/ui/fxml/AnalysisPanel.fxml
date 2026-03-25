@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.layout.Region?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="pokerbrain.ui.AnalysisController"
+            style="-fx-background-color: #0d3b1e;">
+
+    <!-- En-tête -->
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="12"
+              style="-fx-background-color: #0a2e18; -fx-padding: 14 20 14 20;">
+            <Label text="📊" style="-fx-font-size: 20px;"/>
+            <Label text="Analyseur d'équité"
+                   style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="← Menu" onAction="#onBackToMenu"
+                    style="-fx-background-color: transparent; -fx-text-fill: #a09070;
+                           -fx-border-color: #a09070; -fx-border-radius: 4px;
+                           -fx-padding: 4 12 4 12; -fx-font-size: 12px;"/>
+        </HBox>
+    </top>
+
+    <!-- Zone principale -->
+    <center>
+        <HBox spacing="20">
+            <padding><Insets top="20" bottom="10" left="20" right="20"/></padding>
+
+            <!-- Panneau de saisie -->
+            <VBox spacing="16" prefWidth="340">
+
+                <!-- Main du héro -->
+                <VBox spacing="8"
+                      style="-fx-background-color: #163d24; -fx-background-radius: 8px; -fx-padding: 14;">
+                    <Label text="Main du héro"
+                           style="-fx-text-fill: #d4af37; -fx-font-size: 13px; -fx-font-weight: bold;"/>
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <TextField fx:id="heroCard1Field" promptText="ex: As"
+                                   prefWidth="70" prefHeight="36"
+                                   style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                          -fx-prompt-text-fill: #556b55; -fx-border-color: #2a7a4e;
+                                          -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                          -fx-font-size: 16px; -fx-alignment: CENTER;"/>
+                        <TextField fx:id="heroCard2Field" promptText="ex: Kh"
+                                   prefWidth="70" prefHeight="36"
+                                   style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                          -fx-prompt-text-fill: #556b55; -fx-border-color: #2a7a4e;
+                                          -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                          -fx-font-size: 16px; -fx-alignment: CENTER;"/>
+                    </HBox>
+                    <!-- Cartes héro (peuplées par AnalysisController) -->
+                    <HBox fx:id="heroCardsBox" spacing="6" alignment="CENTER_LEFT"/>
+                </VBox>
+
+                <!-- Board -->
+                <VBox spacing="8"
+                      style="-fx-background-color: #163d24; -fx-background-radius: 8px; -fx-padding: 14;">
+                    <Label text="Board (optionnel)"
+                           style="-fx-text-fill: #d4af37; -fx-font-size: 13px; -fx-font-weight: bold;"/>
+                    <HBox spacing="6" alignment="CENTER_LEFT">
+                        <TextField fx:id="board1Field" promptText="Flop 1"
+                                   prefWidth="62" prefHeight="32"
+                                   style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                          -fx-prompt-text-fill: #3a5a3a; -fx-border-color: #2a7a4e;
+                                          -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                          -fx-font-size: 13px; -fx-alignment: CENTER;"/>
+                        <TextField fx:id="board2Field" promptText="Flop 2"
+                                   prefWidth="62" prefHeight="32"
+                                   style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                          -fx-prompt-text-fill: #3a5a3a; -fx-border-color: #2a7a4e;
+                                          -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                          -fx-font-size: 13px; -fx-alignment: CENTER;"/>
+                        <TextField fx:id="board3Field" promptText="Flop 3"
+                                   prefWidth="62" prefHeight="32"
+                                   style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                          -fx-prompt-text-fill: #3a5a3a; -fx-border-color: #2a7a4e;
+                                          -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                          -fx-font-size: 13px; -fx-alignment: CENTER;"/>
+                        <TextField fx:id="board4Field" promptText="Turn"
+                                   prefWidth="62" prefHeight="32"
+                                   style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                          -fx-prompt-text-fill: #3a5a3a; -fx-border-color: #2a7a4e;
+                                          -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                          -fx-font-size: 13px; -fx-alignment: CENTER;"/>
+                        <TextField fx:id="board5Field" promptText="River"
+                                   prefWidth="62" prefHeight="32"
+                                   style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                          -fx-prompt-text-fill: #3a5a3a; -fx-border-color: #2a7a4e;
+                                          -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                          -fx-font-size: 13px; -fx-alignment: CENTER;"/>
+                    </HBox>
+                    <HBox fx:id="boardCardsBox" spacing="6" alignment="CENTER_LEFT"/>
+                </VBox>
+
+                <!-- Adversaire -->
+                <VBox spacing="10"
+                      style="-fx-background-color: #163d24; -fx-background-radius: 8px; -fx-padding: 14;">
+                    <Label text="Adversaire"
+                           style="-fx-text-fill: #d4af37; -fx-font-size: 13px; -fx-font-weight: bold;"/>
+
+                    <!-- Toggle Main / Range -->
+                    <HBox spacing="0">
+                        <fx:define><ToggleGroup fx:id="modeGroup"/></fx:define>
+                        <ToggleButton fx:id="toggleHandMode" text="Main exacte"
+                                      toggleGroup="$modeGroup" selected="true"
+                                      prefWidth="162" prefHeight="30"
+                                      style="-fx-background-color: #8e44ad; -fx-text-fill: white;
+                                             -fx-font-size: 12px; -fx-background-radius: 4px 0 0 4px;
+                                             -fx-border-color: #8e44ad; -fx-border-radius: 4px 0 0 4px;"/>
+                        <ToggleButton fx:id="toggleRangeMode" text="Range"
+                                      toggleGroup="$modeGroup"
+                                      prefWidth="162" prefHeight="30"
+                                      style="-fx-background-color: #0a2e18; -fx-text-fill: #a09070;
+                                             -fx-font-size: 12px; -fx-background-radius: 0 4px 4px 0;
+                                             -fx-border-color: #2a7a4e; -fx-border-radius: 0 4px 4px 0;"/>
+                    </HBox>
+
+                    <!-- Mode : main exacte (2 cartes) -->
+                    <VBox fx:id="villainHandBox" spacing="8">
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <TextField fx:id="villainCard1Field" promptText="ex: Ah"
+                                       prefWidth="70" prefHeight="36"
+                                       style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                              -fx-prompt-text-fill: #556b55; -fx-border-color: #2a7a4e;
+                                              -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                              -fx-font-size: 16px; -fx-alignment: CENTER;"/>
+                            <TextField fx:id="villainCard2Field" promptText="ex: Kd"
+                                       prefWidth="70" prefHeight="36"
+                                       style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                              -fx-prompt-text-fill: #556b55; -fx-border-color: #2a7a4e;
+                                              -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                              -fx-font-size: 16px; -fx-alignment: CENTER;"/>
+                        </HBox>
+                        <HBox fx:id="villainCardsBox" spacing="6" alignment="CENTER_LEFT"/>
+                    </VBox>
+
+                    <!-- Mode : range -->
+                    <VBox fx:id="villainRangeBox" spacing="4" visible="false" managed="false">
+                        <Label text="Notation : AA,KK,AKs ou AXs,KQo"
+                               style="-fx-text-fill: #a09070; -fx-font-size: 11px;"/>
+                        <TextField fx:id="rangeField" promptText="ex: AA,KK,QQ,AKs,AKo"
+                                   prefHeight="36"
+                                   style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                          -fx-prompt-text-fill: #3a5a3a; -fx-border-color: #2a7a4e;
+                                          -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                          -fx-font-size: 13px;"/>
+                    </VBox>
+                </VBox>
+
+                <!-- Bouton calculer -->
+                <Button text="Calculer l'équité" onAction="#onCalculate"
+                        prefWidth="340" prefHeight="44"
+                        style="-fx-font-size: 15px; -fx-font-weight: bold;
+                               -fx-background-color: #8e44ad; -fx-text-fill: white;
+                               -fx-background-radius: 7px;"/>
+
+                <Label fx:id="errorLabel" text=""
+                       style="-fx-text-fill: #e74c3c; -fx-font-size: 12px;"/>
+            </VBox>
+
+            <!-- Panneau résultats -->
+            <VBox spacing="14" HBox.hgrow="ALWAYS">
+
+                <!-- Résultat texte -->
+                <VBox spacing="8"
+                      style="-fx-background-color: #163d24; -fx-background-radius: 8px; -fx-padding: 14;">
+                    <Label text="Résultat"
+                           style="-fx-text-fill: #d4af37; -fx-font-size: 13px; -fx-font-weight: bold;"/>
+                    <Separator style="-fx-background-color: #1a5c32;"/>
+                    <HBox spacing="40" alignment="CENTER">
+                        <VBox spacing="4" alignment="CENTER">
+                            <Label text="Héro" style="-fx-text-fill: #7fcf9f; -fx-font-size: 12px;"/>
+                            <Label fx:id="heroEquityLabel" text="—"
+                                   style="-fx-text-fill: white; -fx-font-size: 32px; -fx-font-weight: bold;"/>
+                        </VBox>
+                        <VBox spacing="4" alignment="CENTER">
+                            <Label text="Tie" style="-fx-text-fill: #a09070; -fx-font-size: 12px;"/>
+                            <Label fx:id="tieLabel" text="—"
+                                   style="-fx-text-fill: #a09070; -fx-font-size: 24px; -fx-font-weight: bold;"/>
+                        </VBox>
+                        <VBox spacing="4" alignment="CENTER">
+                            <Label text="Villain" style="-fx-text-fill: #e07070; -fx-font-size: 12px;"/>
+                            <Label fx:id="villainEquityLabel" text="—"
+                                   style="-fx-text-fill: white; -fx-font-size: 32px; -fx-font-weight: bold;"/>
+                        </VBox>
+                    </HBox>
+                </VBox>
+
+                <!-- Graphique d'équité (peuplé par AnalysisController) -->
+                <VBox fx:id="equityChartContainer"
+                      style="-fx-background-color: #163d24; -fx-background-radius: 8px; -fx-padding: 14;"
+                      VBox.vgrow="ALWAYS"/>
+
+            </VBox>
+        </HBox>
+    </center>
+
+</BorderPane>

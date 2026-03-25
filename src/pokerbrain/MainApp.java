@@ -24,7 +24,7 @@ public class MainApp extends Application {
 
     public static void switchScene(String fxmlPath) throws IOException {
         FXMLLoader loader = new FXMLLoader(
-            MainApp.class.getResource("/pokerbrain/view/" + fxmlPath)
+            MainApp.class.getResource("/pokerbrain/ui/" + fxmlPath)
         );
         Parent root = loader.load();
         primaryStage.setScene(new Scene(root, 1200, 800));
