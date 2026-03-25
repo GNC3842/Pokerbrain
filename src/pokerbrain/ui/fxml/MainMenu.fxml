@@ -31,7 +31,7 @@
                            -fx-background-radius: 8px;"
                     onAction="#onPlayGame"/>
 
-<Button text="📊  Analyseur de leaks"
+            <Button text="📊  Calculateur d'équité"
                     prefWidth="340" prefHeight="60"
                     style="-fx-font-size: 18px; -fx-font-weight: bold;
                            -fx-background-color: #8e44ad; -fx-text-fill: white;

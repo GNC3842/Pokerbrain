@@ -5,6 +5,8 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
@@ -56,8 +58,6 @@
                                           -fx-prompt-text-fill: #556b55; -fx-border-color: #2a7a4e;
                                           -fx-border-radius: 4px; -fx-background-radius: 4px;
                                           -fx-font-size: 16px; -fx-alignment: CENTER;"/>
-                        <Label fx:id="heroCardsDisplay" text="? ?"
-                               style="-fx-text-fill: #a09070; -fx-font-size: 18px;"/>
                     </HBox>
                     <!-- Cartes héro (peuplées par AnalysisController) -->
                     <HBox fx:id="heroCardsBox" spacing="6" alignment="CENTER_LEFT"/>
@@ -103,19 +103,59 @@
                     <HBox fx:id="boardCardsBox" spacing="6" alignment="CENTER_LEFT"/>
                 </VBox>
 
-                <!-- Range adverse -->
-                <VBox spacing="8"
+                <!-- Adversaire -->
+                <VBox spacing="10"
                       style="-fx-background-color: #163d24; -fx-background-radius: 8px; -fx-padding: 14;">
-                    <Label text="Range adverse"
+                    <Label text="Adversaire"
                            style="-fx-text-fill: #d4af37; -fx-font-size: 13px; -fx-font-weight: bold;"/>
-                    <Label text="Notation : AA,KK,AKs ou AXs,KQo"
-                           style="-fx-text-fill: #a09070; -fx-font-size: 11px;"/>
-                    <TextField fx:id="rangeField" promptText="ex: AA,KK,QQ,AKs,AKo"
-                               prefHeight="36"
-                               style="-fx-background-color: #0a2e18; -fx-text-fill: white;
-                                      -fx-prompt-text-fill: #3a5a3a; -fx-border-color: #2a7a4e;
-                                      -fx-border-radius: 4px; -fx-background-radius: 4px;
-                                      -fx-font-size: 13px;"/>
+
+                    <!-- Toggle Main / Range -->
+                    <HBox spacing="0">
+                        <fx:define><ToggleGroup fx:id="modeGroup"/></fx:define>
+                        <ToggleButton fx:id="toggleHandMode" text="Main exacte"
+                                      toggleGroup="$modeGroup" selected="true"
+                                      prefWidth="162" prefHeight="30"
+                                      style="-fx-background-color: #8e44ad; -fx-text-fill: white;
+                                             -fx-font-size: 12px; -fx-background-radius: 4px 0 0 4px;
+                                             -fx-border-color: #8e44ad; -fx-border-radius: 4px 0 0 4px;"/>
+                        <ToggleButton fx:id="toggleRangeMode" text="Range"
+                                      toggleGroup="$modeGroup"
+                                      prefWidth="162" prefHeight="30"
+                                      style="-fx-background-color: #0a2e18; -fx-text-fill: #a09070;
+                                             -fx-font-size: 12px; -fx-background-radius: 0 4px 4px 0;
+                                             -fx-border-color: #2a7a4e; -fx-border-radius: 0 4px 4px 0;"/>
+                    </HBox>
+
+                    <!-- Mode : main exacte (2 cartes) -->
+                    <VBox fx:id="villainHandBox" spacing="8">
+                        <HBox spacing="10" alignment="CENTER_LEFT">
+                            <TextField fx:id="villainCard1Field" promptText="ex: Ah"
+                                       prefWidth="70" prefHeight="36"
+                                       style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                              -fx-prompt-text-fill: #556b55; -fx-border-color: #2a7a4e;
+                                              -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                              -fx-font-size: 16px; -fx-alignment: CENTER;"/>
+                            <TextField fx:id="villainCard2Field" promptText="ex: Kd"
+                                       prefWidth="70" prefHeight="36"
+                                       style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                              -fx-prompt-text-fill: #556b55; -fx-border-color: #2a7a4e;
+                                              -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                              -fx-font-size: 16px; -fx-alignment: CENTER;"/>
+                        </HBox>
+                        <HBox fx:id="villainCardsBox" spacing="6" alignment="CENTER_LEFT"/>
+                    </VBox>
+
+                    <!-- Mode : range -->
+                    <VBox fx:id="villainRangeBox" spacing="4" visible="false" managed="false">
+                        <Label text="Notation : AA,KK,AKs ou AXs,KQo"
+                               style="-fx-text-fill: #a09070; -fx-font-size: 11px;"/>
+                        <TextField fx:id="rangeField" promptText="ex: AA,KK,QQ,AKs,AKo"
+                                   prefHeight="36"
+                                   style="-fx-background-color: #0a2e18; -fx-text-fill: white;
+                                          -fx-prompt-text-fill: #3a5a3a; -fx-border-color: #2a7a4e;
+                                          -fx-border-radius: 4px; -fx-background-radius: 4px;
+                                          -fx-font-size: 13px;"/>
+                    </VBox>
                 </VBox>
 
                 <!-- Bouton calculer -->
