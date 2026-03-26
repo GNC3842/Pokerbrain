@@ -50,7 +50,7 @@ public class CardPrimitiveBridge {
     
     //Convertir une Card en objet 32 bits
     public static int encode(Card carte) {
-    	int rankIndex = rankIndexOf(carte.getRank();
+    	int rankIndex = rankIndexOf(carte.getRank());
     	int prime = RANK_PRIMES[rankIndex];
     	int suitBit = suitBitOf(carte.getSuit());
     	int rankBit = 1 << (SHIFT_RANK_BIT + rankIndex);
