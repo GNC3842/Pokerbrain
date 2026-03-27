@@ -32,15 +32,17 @@ public final class ParallelEquityCalculator {
     }
 
     public ParallelEquityCalculator(int[] lookupTable, int threads) {
-        if (lookupTable == null)
-            throw new IllegalArgumentException("Lookup table ne peut pas être null");
-        if (threads <= 0)
-            throw new IllegalArgumentException("threads doit être positif");
+        if (lookupTable == null) {
+        	throw new IllegalArgumentException("Lookup table ne peut pas être null");
+        }
+        if (threads <= 0) {
+        	throw new IllegalArgumentException("threads doit être positif");
+        }
 
-        this.lookupTable  = lookupTable;
-        this.threadCount  = threads;
-        this.pool         = Executors.newFixedThreadPool(threads);
-        this.enginePool   = ThreadLocal.withInitial(() -> new MonteCarloEngine(lookupTable));
+        this.lookupTable = lookupTable;
+        this.threadCount = threads;
+        this.pool = Executors.newFixedThreadPool(threads);
+        this.enginePool = ThreadLocal.withInitial(() -> new MonteCarloEngine(lookupTable));
     }
 
 
@@ -51,7 +53,7 @@ public final class ParallelEquityCalculator {
             throws InterruptedException, ExecutionException {
 
         int itersPerThread = totalIter / threadCount;
-        int remainder      = totalIter % threadCount;
+        int remainder = totalIter % threadCount;
 
         @SuppressWarnings("unchecked")
         Future<MonteCarloEngine.EquityResult>[] futures = new Future[threadCount];
@@ -59,7 +61,7 @@ public final class ParallelEquityCalculator {
         for (int t = 0; t < threadCount; t++) {
             final int iters = itersPerThread + (t == 0 ? remainder : 0);
             // Capture finale pour la lambda
-            final List<Card> fHole  = heroHole;
+            final List<Card> fHole = heroHole;
             final List<Card> fBoard = board;
 
             futures[t] = pool.submit(() -> {
@@ -72,10 +74,10 @@ public final class ParallelEquityCalculator {
         int wins = 0, ties = 0, losses = 0, iters = 0;
         for (Future<MonteCarloEngine.EquityResult> f : futures) {
             MonteCarloEngine.EquityResult r = f.get();
-            wins   += r.wins;
-            ties   += r.ties;
+            wins += r.wins;
+            ties += r.ties;
             losses += r.losses;
-            iters  += r.iterations;
+            iters += r.iterations;
         }
 
         return new MonteCarloEngine.EquityResult(wins, ties, losses, iters);

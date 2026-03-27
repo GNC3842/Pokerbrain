@@ -31,17 +31,17 @@ public final class MonteCarloEngine {
 
     //Buffers alloués UNE FOIS par instance 
 
-    private final int[] heroEnc    = new int[7]; // encodages hero (2 hole + 5 board)
-    private final int[] heroIdx    = new int[7]; // indices hero
-    private final int[] villEnc    = new int[7]; // encodages villain
-    private final int[] villIdx    = new int[7]; // indices villain
-    private final int[] deadIdx    = new int[7]; // indices des cartes mortes connues
-    private final int[] boardEnc   = new int[5]; // encodages board connu
-    private final int[] boardIdx   = new int[5]; // indices board connu
+    private final int[] heroEnc = new int[7]; // encodages hero (2 hole + 5 board)
+    private final int[] heroIdx = new int[7]; // indices hero
+    private final int[] villEnc = new int[7]; // encodages villain
+    private final int[] villIdx = new int[7]; // indices villain
+    private final int[] deadIdx = new int[7]; // indices des cartes mortes connues
+    private final int[] boardEnc = new int[5]; // encodages board connu
+    private final int[] boardIdx = new int[5]; // indices board connu
 
     public MonteCarloEngine(int[] lookupTable) {
         this.evaluator = new FastHandEvaluator(lookupTable);
-        this.deck      = new DeckPrimitive();
+        this.deck = new DeckPrimitive();
     }
 
 
@@ -49,13 +49,13 @@ public final class MonteCarloEngine {
     public EquityResult calculateEquity(List<Card> heroHole, List<Card> board, int maxIter) {
         validate(heroHole, board, maxIter);
 
-        int boardSize    = board.size();
+        int boardSize = board.size();
         int boardMissing = 5 - boardSize;
-        int deadCount    = 2 + boardSize;
+        int deadCount = 2 + boardSize;
 
         //Encodage des cartes connues (UNE SEULE FOIS, hors boucle)
         DeckPrimitive.encodeCards(heroHole, heroIdx, heroEnc);
-        DeckPrimitive.encodeCards(board,    boardIdx, boardEnc);
+        DeckPrimitive.encodeCards(board, boardIdx, boardEnc);
 
         // Hero : hole cards
         heroEnc[0] = heroEnc[0]; // déjà en place
@@ -75,7 +75,9 @@ public final class MonteCarloEngine {
         // Cartes mortes = hole cards hero + board connu
         deadIdx[0] = heroIdx[0];
         deadIdx[1] = heroIdx[1];
-        for (int i = 0; i < boardSize; i++) deadIdx[2 + i] = boardIdx[i];
+        for (int i = 0; i < boardSize; i++) {
+        	deadIdx[2 + i] = boardIdx[i];
+        }
 
         // Initialiser le deck primitif (exclut les cartes mortes)
         deck.init(deadIdx, deadCount);
@@ -100,7 +102,7 @@ public final class MonteCarloEngine {
                 // Compléter le board (partagé hero+villain)
                 for (int b = 0; b < boardMissing; b++) {
                     int enc = deck.drawnEncoded(2 + b);
-                    int id  = deck.drawnIndex(2 + b);
+                    int id = deck.drawnIndex(2 + b);
                     heroEnc[2 + boardSize + b] = enc;
                     heroIdx[2 + boardSize + b] = id;
                     villEnc[2 + boardSize + b] = enc;
@@ -111,18 +113,26 @@ public final class MonteCarloEngine {
                 int hv = evaluator.evaluate7(heroEnc, heroIdx);
                 int vv = evaluator.evaluate7(villEnc, villIdx);
 
-                if      (hv > vv) wins++;
-                else if (hv == vv) ties++;
-                else               losses++;
+                if(hv > vv) {
+                	wins++;
+                }
+                else if(hv == vv) {
+                	ties++;
+                }
+                else{
+                	losses++;
+                }
 
                 iter++;
             }
 
             // Convergence adaptative (IC 95%)
             if (iter >= CONVERGENCE_BLOCK) {
-                double p      = (wins + ties * 0.5) / iter;
+                double p = (wins + ties * 0.5) / iter;
                 double margin = 1.96 * Math.sqrt(p * (1 - p) / iter);
-                if (margin < CONVERGENCE_THRESHOLD) break;
+                if (margin < CONVERGENCE_THRESHOLD) {
+                	break;
+                }
             }
         }
 
@@ -131,12 +141,15 @@ public final class MonteCarloEngine {
 
     //Validation
     private static void validate(List<Card> heroHole, List<Card> board, int maxIter) {
-        if (heroHole == null || heroHole.size() != 2)
-            throw new IllegalArgumentException("Hero doit avoir exactement 2 cartes");
-        if (board == null || board.size() > 5)
-            throw new IllegalArgumentException("Board invalide : " + board.size() + " cartes");
-        if (maxIter <= 0)
-            throw new IllegalArgumentException("maxIter doit être positif");
+        if (heroHole == null || heroHole.size() != 2) {
+        	throw new IllegalArgumentException("Hero doit avoir exactement 2 cartes");
+        }
+        if (board == null || board.size() > 5) {
+        	throw new IllegalArgumentException("Board invalide : " + board.size() + " cartes");
+        }
+        if (maxIter <= 0) {
+        	throw new IllegalArgumentException("maxIter doit être positif");
+        }
     }
 
     //Résultat
@@ -148,20 +161,42 @@ public final class MonteCarloEngine {
         public final int iterations;
 
         public EquityResult(int wins, int ties, int losses, int iterations) {
-            this.wins       = wins;
-            this.ties       = ties;
-            this.losses     = losses;
+            this.wins = wins;
+            this.ties = ties;
+            this.losses = losses;
             this.iterations = iterations;
         }
 
         //Équité totale : victoires + moitié des égalités
         public double equity() {
-            return iterations == 0 ? 0.0 : (wins + ties * 0.5) / iterations * 100.0;
+        	if(iterations == 0) {
+        		return 0.0;
+        	}else {
+        		return (wins + ties * 0.5) / iterations * 100.0;
+        	}
         }
 
-        public double winPct()  { return iterations == 0 ? 0.0 : wins   * 100.0 / iterations; }
-        public double tiePct()  { return iterations == 0 ? 0.0 : ties   * 100.0 / iterations; }
-        public double lossPct() { return iterations == 0 ? 0.0 : losses * 100.0 / iterations; }
+        public double winPct(){ 
+        	if (iterations == 0) {
+        		return 0.0;
+        	} else {
+        		return wins*100.0 / iterations;
+        	}
+        }
+        public double tiePct(){
+        	if (iterations == 0) {
+        		return 0.0;
+        	} else {
+        		return ties*100.0 / iterations;
+        	}
+        }
+        public double lossPct() { 
+        	if (iterations == 0) {
+        		return 0.0;
+        	} else {
+        		return losses*100.0 / iterations;
+        	}
+        }
 
         @Override
         public String toString() {
