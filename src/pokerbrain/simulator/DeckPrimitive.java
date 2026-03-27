@@ -71,5 +71,5 @@ public class DeckPrimitive {
             outIdx[i] = CardPrimitiveBridge.indexOf(cards.get(i));
             outEnc[i] = ALL_ENCODED[outIdx[i]];
         }
-
+    }
 }
