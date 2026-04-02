@@ -1,12 +1,18 @@
 package pokerbrain.ui;
 
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.TextField;
 import javafx.scene.control.ToggleButton;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import pokerbrain.engine.EquityCalculator;
 import pokerbrain.model.core.Card;
+
+import java.util.ArrayList;
+import java.util.List;
 
 // Panneau d'analyse d'équité : l'utilisateur saisit les cartes et un range adverse,
 // puis lance un calcul Monte Carlo (à implémenter).
@@ -33,6 +39,8 @@ public class AnalysisController {
     @FXML private Label villainEquityLabel;
     @FXML private Label tieLabel;
     @FXML private Label errorLabel;
+
+    @FXML private Button calculateButton;
 
     private EquityChart equityChart;
     private CardView    heroView1, heroView2;
@@ -101,26 +109,81 @@ public class AnalysisController {
     @FXML
     private void onCalculate() {
         errorLabel.setText("");
+
+        if (toggleRangeMode.isSelected()) {
+            errorLabel.setText("Le mode range n'est pas encore disponible.");
+            return;
+        }
+
         try {
             Card c1 = parseCard(heroCard1Field.getText(), "Carte 1 héro");
             Card c2 = parseCard(heroCard2Field.getText(), "Carte 2 héro");
-            if (c1.equals(c2)) { errorLabel.setText("Les deux cartes doivent être différentes."); return; }
+            if (c1.equals(c2)) { errorLabel.setText("Les deux cartes du héro doivent être différentes."); return; }
 
-            if (toggleHandMode.isSelected()) {
-                Card v1 = parseCard(villainCard1Field.getText(), "Carte 1 villain");
-                Card v2 = parseCard(villainCard2Field.getText(), "Carte 2 villain");
-                if (v1.equals(v2)) { errorLabel.setText("Les deux cartes du villain doivent être différentes."); return; }
-                // TODO : calcul Monte Carlo main vs main
-            } else {
-                String range = rangeField.getText();
-                if (range == null || range.isBlank()) { errorLabel.setText("Range adverse vide."); return; }
-                // TODO : calcul Monte Carlo main vs range
-            }
+            Card v1 = parseCard(villainCard1Field.getText(), "Carte 1 villain");
+            Card v2 = parseCard(villainCard2Field.getText(), "Carte 2 villain");
+            if (v1.equals(v2)) { errorLabel.setText("Les deux cartes du villain doivent être différentes."); return; }
 
-            errorLabel.setText("Calcul d'équité non encore implémenté.");
+            List<Card> heroHand    = List.of(c1, c2);
+            List<Card> villainHand = List.of(v1, v2);
+            List<Card> board       = parseBoard();
+
+            // Vérifier qu'aucune carte n'apparaît deux fois
+            List<Card> all = new ArrayList<>(heroHand);
+            all.addAll(villainHand);
+            all.addAll(board);
+            for (int i = 0; i < all.size(); i++)
+                for (int j = i + 1; j < all.size(); j++)
+                    if (all.get(i).equals(all.get(j)))
+                        throw new IllegalArgumentException("Carte en double : " + all.get(i));
+
+            calculateButton.setDisable(true);
+            calculateButton.setText("Calcul en cours…");
+            equityChart.reset();
+
+            Task<double[]> task = new Task<>() {
+                @Override protected double[] call() {
+                    return EquityCalculator.calculate(heroHand, villainHand, board);
+                }
+            };
+            task.setOnSucceeded(e -> {
+                double[] r       = task.getValue();
+                double heroEq    = r[0] + r[2] / 2.0;
+                double villainEq = r[1] + r[2] / 2.0;
+                heroEquityLabel.setText(String.format("%.1f%%", heroEq));
+                villainEquityLabel.setText(String.format("%.1f%%", villainEq));
+                tieLabel.setText(String.format("%.1f%%", r[2]));
+                equityChart.setHeroVillain(heroEq);
+                calculateButton.setDisable(false);
+                calculateButton.setText("Calculer l'équité");
+            });
+            task.setOnFailed(e -> {
+                errorLabel.setText("Erreur : " + task.getException().getMessage());
+                calculateButton.setDisable(false);
+                calculateButton.setText("Calculer l'équité");
+            });
+            Thread t = new Thread(task);
+            t.setDaemon(true);
+            t.start();
+
         } catch (IllegalArgumentException e) {
             errorLabel.setText(e.getMessage());
         }
+    }
+
+    private List<Card> parseBoard() {
+        TextField[] fields = { board1Field, board2Field, board3Field, board4Field, board5Field };
+        List<Card> board = new ArrayList<>();
+        boolean gap = false;
+        for (TextField f : fields) {
+            String txt = f.getText().trim();
+            if (txt.isEmpty()) { gap = true; continue; }
+            if (gap) throw new IllegalArgumentException("Board incomplet : remplissez les cases dans l'ordre.");
+            board.add(parseCard(txt, "Board"));
+        }
+        if (board.size() == 1 || board.size() == 2)
+            throw new IllegalArgumentException("Board invalide : entrez 0, 3, 4 ou 5 cartes.");
+        return board;
     }
 
     private Card parseCard(String notation, String fieldName) {

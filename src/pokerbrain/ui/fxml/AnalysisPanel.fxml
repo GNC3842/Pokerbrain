@@ -22,7 +22,7 @@
         <HBox alignment="CENTER_LEFT" spacing="12"
               style="-fx-background-color: #0a2e18; -fx-padding: 14 20 14 20;">
             <Label text="📊" style="-fx-font-size: 20px;"/>
-            <Label text="Analyseur d'équité"
+            <Label text="Calculateur d'équité"
                    style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;"/>
             <Region HBox.hgrow="ALWAYS"/>
             <Button text="← Menu" onAction="#onBackToMenu"
@@ -159,7 +159,7 @@
                 </VBox>
 
                 <!-- Bouton calculer -->
-                <Button text="Calculer l'équité" onAction="#onCalculate"
+                <Button fx:id="calculateButton" text="Calculer l'équité" onAction="#onCalculate"
                         prefWidth="340" prefHeight="44"
                         style="-fx-font-size: 15px; -fx-font-weight: bold;
                                -fx-background-color: #8e44ad; -fx-text-fill: white;

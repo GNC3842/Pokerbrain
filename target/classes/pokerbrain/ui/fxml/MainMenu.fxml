@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.VBox?>
+
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="pokerbrain.ui.MenuController"
+            style="-fx-background-color: #0d3b1e;">
+
+    <top>
+        <VBox alignment="CENTER">
+            <padding><Insets top="40" bottom="20"/></padding>
+            <Label text="♠ PokerBrain ♥"
+                   style="-fx-font-size: 52px; -fx-font-weight: bold; -fx-text-fill: #d4af37;"/>
+            <Label text="Analyse · Simulation · Entraînement"
+                   style="-fx-font-size: 16px; -fx-text-fill: #a09070; -fx-font-style: italic;"/>
+        </VBox>
+    </top>
+
+    <center>
+        <VBox alignment="CENTER" spacing="20">
+            <Button text="▶  Jouer une partie"
+                    prefWidth="340" prefHeight="60"
+                    style="-fx-font-size: 18px; -fx-font-weight: bold;
+                           -fx-background-color: #2ecc71; -fx-text-fill: white;
+                           -fx-background-radius: 8px;"
+                    onAction="#onPlayGame"/>
+
+<Button text="📊  Analyseur de leaks"
+                    prefWidth="340" prefHeight="60"
+                    style="-fx-font-size: 18px; -fx-font-weight: bold;
+                           -fx-background-color: #8e44ad; -fx-text-fill: white;
+                           -fx-background-radius: 8px;"
+                    onAction="#onLeakAnalyzer"/>
+
+            <Button text="📈  Statistiques"
+                    prefWidth="340" prefHeight="60"
+                    style="-fx-font-size: 18px; -fx-font-weight: bold;
+                           -fx-background-color: #d35400; -fx-text-fill: white;
+                           -fx-background-radius: 8px;"
+                    onAction="#onStatistics"/>
+        </VBox>
+    </center>
+
+    <bottom>
+        <HBox alignment="CENTER_RIGHT">
+            <padding><Insets bottom="15" right="20"/></padding>
+            <Button text="Quitter"
+                    style="-fx-background-color: transparent; -fx-text-fill: #a09070;
+                           -fx-border-color: #a09070; -fx-border-radius: 4px;
+                           -fx-padding: 4 12 4 12;"
+                    onAction="#onQuit"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>
