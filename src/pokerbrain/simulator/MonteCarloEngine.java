@@ -23,7 +23,7 @@ import java.util.concurrent.ThreadLocalRandom;
  */
 public final class MonteCarloEngine {
 
-    private static final int    CONVERGENCE_BLOCK  = 500;
+    private static final int CONVERGENCE_BLOCK  = 500;
     private static final double CONVERGENCE_THRESHOLD = 0.005; // ±0.5%
 
     private final FastHandEvaluator evaluator;
@@ -46,7 +46,7 @@ public final class MonteCarloEngine {
 
 
     //Calcule l'équité du hero contre 1 adversaire à cartes inconnues
-    public EquityResult calculateEquity(List<Card> heroHole, List<Card> board, int maxIter) {
+    public EquityResult calculateEquity(List<Card> heroHole, List<Card> board, int maxIter, int nbOpposants) {
         validate(heroHole, board, maxIter);
 
         int boardSize = board.size();
@@ -84,6 +84,7 @@ public final class MonteCarloEngine {
 
         //Boucle Monte-Carlo
         int wins = 0, ties = 0, losses = 0, iter = 0;
+        double equitySum = 0.0; //en cas dégalité à min 3
         ThreadLocalRandom rng = ThreadLocalRandom.current();
 
         while (iter < maxIter) {
@@ -91,18 +92,13 @@ public final class MonteCarloEngine {
 
             while (iter < blockEnd) {
                 // Mélange partiel : 2 (villain) + boardMissing cartes
-                deck.shufflePartial(rng, 2 + boardMissing);
+                deck.shufflePartial(rng, (2*nbOpposants) + boardMissing);
 
-                // Villain hole cards
-                villEnc[0] = deck.drawnEncoded(0);
-                villIdx[0] = deck.drawnIndex(0);
-                villEnc[1] = deck.drawnEncoded(1);
-                villIdx[1] = deck.drawnIndex(1);
 
                 // Compléter le board (partagé hero+villain)
                 for (int b = 0; b < boardMissing; b++) {
-                    int enc = deck.drawnEncoded(2 + b);
-                    int id = deck.drawnIndex(2 + b);
+                    int enc = deck.drawnEncoded((2*nbOpposants) + b);
+                    int id = deck.drawnIndex((2*nbOpposants) + b);
                     heroEnc[2 + boardSize + b] = enc;
                     heroIdx[2 + boardSize + b] = id;
                     villEnc[2 + boardSize + b] = enc;
@@ -111,13 +107,34 @@ public final class MonteCarloEngine {
 
                 // Évaluation O(1) chacune
                 int hv = evaluator.evaluate7(heroEnc, heroIdx);
-                int vv = evaluator.evaluate7(villEnc, villIdx);
-
-                if(hv > vv) {
-                	wins++;
+                
+                int maxVillainScore = -1;
+                int villainTieCount = 0;
+                
+                for(int i=0;i<nbOpposants;i++) {
+                	// Villain hole cards
+                    villEnc[0] = deck.drawnEncoded(i*2);
+                    villIdx[0] = deck.drawnIndex(i*2);
+                    villEnc[1] = deck.drawnEncoded(i*2+1);
+                    villIdx[1] = deck.drawnIndex(i*2+1);
+                    
+                    int vv = evaluator.evaluate7(villEnc,villIdx);
+                    
+                    if(vv>maxVillainScore) {
+                    	maxVillainScore = vv;
+                    	villainTieCount = 1;
+                    } else if(vv == maxVillainScore) {
+                    	villainTieCount++;
+                    }
                 }
-                else if(hv == vv) {
+
+                if(hv > maxVillainScore) {
+                	wins++;
+                	equitySum += 1.0;
+                }
+                else if(hv == maxVillainScore) {
                 	ties++;
+                	equitySum += 1.0 / (villainTieCount + 1);
                 }
                 else{
                 	losses++;
@@ -128,7 +145,7 @@ public final class MonteCarloEngine {
 
             // Convergence adaptative (IC 95%)
             if (iter >= CONVERGENCE_BLOCK) {
-                double p = (wins + ties * 0.5) / iter;
+                double p = equitySum / iter;
                 double margin = 1.96 * Math.sqrt(p * (1 - p) / iter);
                 if (margin < CONVERGENCE_THRESHOLD) {
                 	break;
@@ -136,7 +153,7 @@ public final class MonteCarloEngine {
             }
         }
 
-        return new EquityResult(wins, ties, losses, iter);
+        return new EquityResult(wins, ties, losses, iter, equitySum);
     }
 
     //Validation
@@ -159,21 +176,14 @@ public final class MonteCarloEngine {
         public final int ties;
         public final int losses;
         public final int iterations;
+        public final double equitySum;
 
-        public EquityResult(int wins, int ties, int losses, int iterations) {
+        public EquityResult(int wins, int ties, int losses, int iterations, double equitySum) {
             this.wins = wins;
             this.ties = ties;
             this.losses = losses;
             this.iterations = iterations;
-        }
-
-        //Équité totale : victoires + moitié des égalités
-        public double equity() {
-        	if(iterations == 0) {
-        		return 0.0;
-        	}else {
-        		return (wins + ties * 0.5) / iterations * 100.0;
-        	}
+            this.equitySum = equitySum;
         }
 
         public double winPct(){ 
@@ -195,6 +205,14 @@ public final class MonteCarloEngine {
         		return 0.0;
         	} else {
         		return losses*100.0 / iterations;
+        	}
+        }
+        
+        public double equity() {
+        	if(iterations == 0) {
+        		return 0.0;
+        	} else {
+        		return (equitySum / iterations) * 100.0;
         	}
         }
 

@@ -18,7 +18,7 @@ public class HandRank implements Comparable<HandRank> {
 		long[] weights = {100_000_000L,1_000_000L,10_000L,100L,1L};
 		List<Rank> kickerList = getKickers();
 		
-		for (int i=0;i<Math.min(kickerList.size(),4);i++) {
+		for (int i=0;i<Math.min(kickerList.size(),5);i++) {
 			value += kickerList.get(i).getValue() * weights[i];
 		}
 		

@@ -43,10 +43,10 @@ public class LookupTableGenerator {
 		Card[] allCards = buildAllCards();
 		//Enumere toutes les combinaisons de C(52,5)
 		for(int i0=0;i0<48;i0++) {
-			for(int i1=i0;i1<49;i1++) {
-				for(int i2=i1;i2<50;i2++) {
-					for(int i3=i2;i3<51;i3++) {
-						for(int i4=i3;i4<52;i4++) {
+			for(int i1=i0+1;i1<49;i1++) {
+				for(int i2=i1+1;i2<50;i2++) {
+					for(int i3=i2+1;i3<51;i3++) {
+						for(int i4=i3+1;i4<52;i4++) {
 							int idx = combinatorialIndex(i0, i1, i2, i3, i4);
 							List<Card> five = new ArrayList<>(5);
 							five.add(allCards[i0]);

@@ -67,48 +67,5 @@ public final class PotOddsCalculator {
     	}
         return Math.min(1.0, outs * multiplier / 100.0);
     }
-    
-    //Definit l'action pour une main suited specifique (ex: AKs)
-    public RangeMap setSuited(Rank high, Rank low, ActionType action) {
-    	
-    }
-    
-    //Definit l'action pour toutes les mains suited high-X avec X >= minLow
-    public RangeMap setSuitedFrom(Rank high, Rank minLow, ActionType action) {
-    	
-    }
-    
-    //Defini l'action pour une main offsuit specifique
-    public RangeMap setOffsuit(Rank high, Rank low, ActionType action) {
-    	
-    }
-    
-    //efinit l'action pour toutes les mains offsuit high-X avec X >= minLow
-    public RangeMap setOffsuitFrom(Rank high, Rank minLow, ActionType action) {
-    	
-    }
-    
-    //Consulter les mains à jouer
-    public ActionType getAction(Rank rank1, Rank rank2, boolean isSuited) {
-    	
-    }
-    
-    //PPourcentage de mains jouees (CALL ou RAISE) — correspond au VPIP theorique
-    public double getVPIP() {
-    	
-    }
-    
-    //Pourcentage de mains ou on relance (RAISE) — correspond au PFR theorique
-    public double getPFR() {
-    	
-    }
-    
-    public static double outsToEquity(int outs, int cardsTocome) {
-    	
-    }
-
-    @Override
-    public String toString() {
-        return String.format("RangeMap[VPIP=%.1f%% PFR=%.1f%%]", getVPIP(), getPFR());
-    }
+ 
 }

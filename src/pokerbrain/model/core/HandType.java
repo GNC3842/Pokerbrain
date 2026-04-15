@@ -10,7 +10,7 @@ public enum HandType {
 	FULL_HOUSE(6,"Full"),
 	FOUR_OF_KIND(7,"Carré"),
 	STRAIGHT_FLUSH(8,"Quinte flush"),
-	ROYAL_FLUSH(9,"Quinte flush oryale");
+	ROYAL_FLUSH(9,"Quinte flush royale");
 	
 	private final int baseValue;
 	private final String name;

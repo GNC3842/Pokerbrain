@@ -221,4 +221,13 @@ public class BettingRoundManager {
         }
         return active;
     }
+    
+    /**
+     * Montant minimum pour un raise légal (total à atteindre, pas le delta).
+     * Formule : currentBetLevel + max(lastRaiseAmount, bigBlind).
+     * Exposé pour que GameSession calcule le bon minimum pour le slider héro.
+     */
+    public int getMinRaiseTo() {
+        return this.currentBetLevel + Math.max(this.lastRaiseAmount, this.bigBlind);
+    }
 }

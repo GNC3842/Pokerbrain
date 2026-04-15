@@ -217,7 +217,12 @@ public class PokerGame {
 	public Player getCurrentPlayer() {
 		return this.roundManager.getCurrentPlayer();
 	}
-
+	
+	public int getCurrentBetLevel() {
+		if (this.roundManager == null) return 0;
+		return this.roundManager.getCurrentBetLevel();
+	}
+	
 	public boolean isRoundComplete() {
 		return this.roundManager == null || this.roundManager.isComplete();
 	}
@@ -248,6 +253,28 @@ public class PokerGame {
 
 	public List<SidePot> getSidePots(){
 		return this.potManager.getFinalisedPots(); 
+	}
+	
+	public int getSmallBlind() {
+		return this.smallBlind;
+	}
+
+	public int getBigBlind() {
+		return this.bigBlind;
+	}
+	
+	/**
+	 * Montant minimum légal pour un raise (total à atteindre, pas le delta).
+	 * Délègue au BettingRoundManager qui connaît lastRaiseAmount.
+	 */
+	public int getMinRaiseTo() {
+		if (this.roundManager == null) return this.bigBlind * 2;
+		return this.roundManager.getMinRaiseTo();
+	}
+
+	public int getCallAmount() {
+		if (this.roundManager == null || this.roundManager.isComplete()) return 0;
+		return this.potManager.getCallAmount(this.roundManager.getCurrentPlayer());
 	}
 
 	//Helpers privés
