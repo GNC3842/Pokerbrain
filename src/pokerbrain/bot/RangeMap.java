@@ -3,11 +3,6 @@ package pokerbrain.bot;
 import pokerbrain.model.core.Rank;
 import pokerbrain.model.game.ActionType;
 
-import java.io.*;
-import java.net.URL;
-import java.nio.file.*;
-import java.util.*;
-
 /**
  * Heatmap 13x13 representant la strategie preflop d'un bot.
  *
@@ -16,15 +11,6 @@ import java.util.*;
  *   (FOLD, CALL ou RAISE) pour cette combinaison de rangs.
  *
  *   Indexation : rankIndex = Rank.getValue() - 2  (TWO=0 ... ACE=12)
- *   Diagonale  : paires de poche (AA, KK, QQ...)
- *   Triangle superieur droit : suited  (AKs, KQs...)
- *   Triangle inferieur gauche: offsuit (AKo, KQo...)
- *
- *   Convention standard poker :
- *     - [i][j] avec i > j : ligne=rang haut, colonne=rang bas
- *     - i == j : paire
- *     - i > j  dans le triangle superieur = suited (Ks)
- *               dans le triangle inferieur = offsuit (Ko)
  *
  *   Visuellement la grille ressemble a :
  *        A    K    Q    J    T    9 ...
@@ -37,24 +23,20 @@ import java.util.*;
  *   FOLD  : ne joue pas la main
  *   CALL  : suit sans relancer (limping ou flat call)
  *   RAISE : relance / open raise
- *
- * SUITED vs OFFSUIT :
- *   La meme cellule logique (ex: A-K) peut avoir des actions differentes
- *   selon si les cartes sont de la meme couleur. On utilise deux matrices.
+ * 
+ * Attention en pratique on va découpé ce tableau en 3 catégorie suited,offsuit et pairs pour éviter les problèmes
+ * de comparaisons dessus/dessous la daigonale
  */
-public class RangeMap{
-	private static final int SIZE = 13; // TWO(0) ... ACE(12)
-	
-	// Actions par type de main
-    // suited[high][low]   : high > low, cartes meme couleur
-    // offsuit[high][low]  : high > low, couleurs differentes
-    // pairs[rank][rank]   : paire de poche (diagonale)
-    private final ActionType[][] suited  = new ActionType[SIZE][SIZE];
+
+public class RangeMap {
+    private static final int SIZE = 13; // TWO(0) ... ACE(12)
+
+    // Actions par type de main
+    private final ActionType[][] suited = new ActionType[SIZE][SIZE];
     private final ActionType[][] offsuit = new ActionType[SIZE][SIZE];
-    private final ActionType[]   pairs   = new ActionType[SIZE];
-    
-    //Constructeur
-    //Cree une heatmap avec toutes les mains a FOLD par defaut
+    private final ActionType[] pairs = new ActionType[SIZE];
+
+    //Constructeur: crée une heatmap où tout est à FOLD par défaut
     public RangeMap() {
         for (int i = 0; i < SIZE; i++) {
             pairs[i] = ActionType.FOLD;
@@ -64,26 +46,104 @@ public class RangeMap{
             }
         }
     }
-    
-    //Liste setters
-    
-    //défini l'action pour une paire de poche
+
+    //Renvoie une RangeMap vide (tout FOLD)
+    public static RangeMap empty() {
+        return new RangeMap();
+    }
+
+    //Setters pour paires 
+
+    //Definit l'action pour une paire de poche specifique
     public RangeMap setPair(Rank rank, ActionType action) {
         pairs[idx(rank)] = action;
         return this;
     }
+
     //Definit l'action pour toutes les paires >= minRank
     public RangeMap setPairsFrom(Rank minRank, ActionType action) {
         for (int i = idx(minRank); i < SIZE; i++) pairs[i] = action;
         return this;
     }
-	//Renvoie une RangeMap vide
-	public static RangeMap empty() { 
-		return new RangeMap(); 
-	}
-	
-	//Retourne une representation ASCII de la heatmap (13x13
-    public String toAscii() {
+
+    // Setters pour suited
+
+    //Definit l'action pour une main suited specifique (ex: AKs)
+    public RangeMap setSuited(Rank high, Rank low, ActionType action) {
+        int h = idx(high);
+        int l = idx(low);
+        if (h == l) { 
+            pairs[h] = action; 
+            return this; 
+        }
+        // Toujours stocker [max][min] pour cohérence + logique avec séparation en 3
+        suited[Math.max(h, l)][Math.min(h, l)] = action;
+        return this;
+    }
+
+    //Definit l'action pour toutes les mains suited high-X avec X >= minLow
+    public RangeMap setSuitedFrom(Rank high, Rank minLow, ActionType action) {
+        int h = idx(high);
+        for (int l = idx(minLow); l < h; l++) {
+            suited[h][l] = action;
+        }
+        return this;
+    }
+
+    //Setters pour offsuit
+
+    //Definit l'action pour une main offsuit specifique (ex: AKo)
+    public RangeMap setOffsuit(Rank high, Rank low, ActionType action) {
+        int h = idx(high);
+        int l = idx(low);
+        if (h == l) { pairs[h] = action; return this; }
+        offsuit[Math.max(h, l)][Math.min(h, l)] = action;
+        return this;
+    }
+
+    // Definit l'action pour toutes les mains offsuit high-X avec X >= minLow
+    public RangeMap setOffsuitFrom(Rank high, Rank minLow, ActionType action) {
+        int h = idx(high);
+        for (int l = idx(minLow); l < h; l++) {
+            offsuit[h][l] = action;
+        }
+        return this;
+    }
+
+    //Consultation
+
+    //Retourne l'action a jouer pour une combinaison donnee et gere automatiquement l'ordre des rangs
+    public ActionType getAction(Rank rank1, Rank rank2, boolean isSuited) {
+        int r1 = idx(rank1);
+        int r2 = idx(rank2);
+
+        if (r1 == r2) {
+            return pairs[r1];
+        }
+
+        int high = Math.max(r1, r2);
+        int low = Math.min(r1, r2);
+        if (isSuited){
+            return suited[high][low];
+        } else {
+            return offsuit[high][low];
+        }
+    }
+
+    // Helper: renvoie juste le rank normalisé
+    private static int idx(Rank r) {
+        return r.getValue() - 2;
+    }
+
+    //Statistiques de la heatmap (à implémenter)
+
+    //Calcul VPIP théorique
+
+    //meme chose pour PFR théorique
+   
+
+    //Affichage de la heatmap en Ascii si besoin (a faire pour le fun)
+}
     	
     }
     
