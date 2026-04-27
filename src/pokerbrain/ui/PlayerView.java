@@ -44,7 +44,7 @@ public class PlayerView extends VBox {
         nameLabel.setText(player.getName());
         if (player.getPosition() != null)
             positionLabel.setText(player.getPosition().name());
-        stackLabel.setText(String.format("%.0f BB", player.getStack()));
+        stackLabel.setText(player.getStack() + " j.");
         setBet(player.getCurrentBet());
 
         var cards = player.getHoleCards();

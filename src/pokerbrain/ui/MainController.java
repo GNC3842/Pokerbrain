@@ -9,8 +9,16 @@ public class MainController {
 
     private MainController() {}
 
+    public static GameController goToGame() {
+        try {
+            return MainApp.switchScene("fxml/GameScreen.fxml");
+        } catch (IOException e) {
+            System.err.println("Erreur navigation : " + e.getMessage());
+            return null;
+        }
+    }
+
     public static void goToMenu()       { navigate("fxml/MainMenu.fxml"); }
-    public static void goToGame()       { navigate("fxml/GameScreen.fxml"); }
     public static void goToReplay()     { navigate("fxml/ReplayScreen.fxml"); }
     public static void goToAnalysis()   { navigate("fxml/AnalysisPanel.fxml"); }
     public static void goToStatistics() { navigate("fxml/StatisticsView.fxml"); }

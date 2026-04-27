@@ -1,16 +1,23 @@
 package pokerbrain.ui;
 
+import javafx.animation.PauseTransition;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.util.Duration;
+import pokerbrain.bot.Bot;
+import pokerbrain.engine.PokerGame;
 import pokerbrain.model.core.Card;
-import pokerbrain.model.game.Player;
+import pokerbrain.model.game.*;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /*
  * Répartition des sièges autour de la table (héro toujours en bas) :
@@ -48,9 +55,17 @@ public class GameController {
     private CardView[]     communityCards;
     private ActionTimeline timeline;
 
+    // État de la partie
+    private PokerGame          game;
+    private List<Bot>          bots;
+    private Map<String, Bot>   botsByPlayerId = new HashMap<>();
+    private Map<String, PlayerView> playerViews = new HashMap<>();
+    private int heroPlayerIndex;
+    private int smallBlind;
+    private int bigBlind;
+
     @FXML
     public void initialize() {
-        // Les 5 cartes communes sont créées ici et mises à jour via revealCommunityCards()
         communityCards = new CardView[5];
         for (int i = 0; i < 5; i++) {
             communityCards[i] = new CardView();
@@ -64,24 +79,42 @@ public class GameController {
         timeline = new ActionTimeline();
         timelineContainer.getChildren().add(timeline);
 
-        // NaN possible si min == max == 0 lors du drag (voir configureRaiseSlider)
         raiseSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
-            double v = newVal.doubleValue();
-            raiseAmountLabel.setText(Double.isNaN(v) ? "0 BB" : String.format("%.1f BB", v));
+            int v = (int) Math.round(newVal.doubleValue());
+            raiseAmountLabel.setText(v <= 0 ? "0" : v + " j.");
         });
+
+        disableActions();
     }
 
-    // Appel principal depuis le moteur de jeu : place le héro en bas et distribue les adversaires autour de la table
+    // ── Point d'entrée depuis MenuController ─────────────────────────────────
+
+    public void initGame(List<Player> players, int heroIndex, List<Bot> gameBots,
+                         int sb, int bb) {
+        this.smallBlind      = sb;
+        this.bigBlind        = bb;
+        this.heroPlayerIndex = heroIndex;
+        this.bots            = new ArrayList<>(gameBots);
+        for (Bot b : gameBots) botsByPlayerId.put(b.getPlayerId(), b);
+
+        this.game = new PokerGame(players, sb, bb);
+        loadPlayers(players, heroIndex);
+        startNewHand();
+    }
+
+    // ── Chargement initial de la table ────────────────────────────────────────
+
     public void loadPlayers(List<Player> players, int heroIndex) {
         if (players.size() < 2 || players.size() > 8)
             throw new IllegalArgumentException("Le nombre de joueurs doit être entre 2 et 8.");
 
         clearAllSlots();
+        playerViews.clear();
 
         hero = new PlayerView();
         hero.setPlayer(players.get(heroIndex));
         heroSlot.getChildren().add(hero);
-        configureRaiseSlider(players.get(heroIndex).getStack());
+        playerViews.put(players.get(heroIndex).getId(), hero);
 
         List<Player> opponents = new ArrayList<>(players);
         opponents.remove(heroIndex);
@@ -113,6 +146,7 @@ public class GameController {
     private PlayerView makeView(Player player) {
         PlayerView view = new PlayerView();
         view.setPlayer(player);
+        playerViews.put(player.getId(), view);
         return view;
     }
 
@@ -124,22 +158,301 @@ public class GameController {
         heroSlot.getChildren().clear();
     }
 
-    @FXML
-    private void onFold() {
-        foldButton.setDisable(true);
-        checkCallButton.setDisable(true);
-        raiseButton.setDisable(true);
-        raiseSlider.setDisable(true);
-        hero.setFolded(true);
+    // ── Boucle de jeu ─────────────────────────────────────────────────────────
+
+    private void startNewHand() {
+        try {
+            clearHistory();
+            for (CardView cv : communityCards) cv.showEmpty();
+            game.startNewHand();
+            refreshAllPlayerViews();
+            updatePotLabel();
+            setRound(game.getCurrentRound().name());
+            processTurn();
+        } catch (Exception e) {
+            System.err.println("Impossible de démarrer une nouvelle main : " + e.getMessage());
+            MainController.goToMenu();
+        }
     }
 
-    @FXML private void onCall()  { /* TODO : logique de jeu */ }
-    @FXML private void onRaise() { /* TODO : logique de jeu */ }
+    // Décide quoi faire selon l'état du jeu : avancer le round, jouer le bot, ou attendre le héro.
+    private void processTurn() {
+        if (game.isHandOver()) {
+            handleHandOver();
+            return;
+        }
+
+        updatePotLabel();
+        setRound(game.getCurrentRound().name());
+
+        if (game.isRoundComplete()) {
+            PauseTransition pause = new PauseTransition(Duration.millis(400));
+            pause.setOnFinished(e -> advanceRound());
+            pause.play();
+            return;
+        }
+
+        Player current = game.getCurrentPlayer();
+        highlightCurrentPlayer(current);
+
+        if (botsByPlayerId.containsKey(current.getId())) {
+            disableActions();
+            PauseTransition pause = new PauseTransition(Duration.millis(600));
+            pause.setOnFinished(e -> runBotTurn(botsByPlayerId.get(current.getId()), current));
+            pause.play();
+        } else {
+            enableActions(game.getValidActions());
+        }
+    }
+
+    private void advanceRound() {
+        try {
+            BettingRound finished = game.getCurrentRound();
+            if (finished == BettingRound.RIVER) {
+                handleShowdown();
+                return;
+            }
+            switch (finished) {
+                case PREFLOP -> game.dealFlop();
+                case FLOP    -> game.dealTurn();
+                case TURN    -> game.dealRiver();
+                default      -> { return; }
+            }
+            List<Card> board = game.getBoard();
+            revealCommunityCards(board.toArray(new Card[0]));
+            setRound(game.getCurrentRound().name());
+            updatePotLabel();
+            processTurn();
+        } catch (Exception e) {
+            System.err.println("Erreur avancement round : " + e.getMessage());
+        }
+    }
+
+    private void handleShowdown() {
+        try {
+            Map<Player, Integer> winnings = game.showdown();
+            // Révéler les cartes de tous les joueurs encore en jeu
+            String heroId = game.getPlayers().get(heroPlayerIndex).getId();
+            for (Player p : game.getPlayers()) {
+                if (!p.isFolded() && !p.isOut()) {
+                    PlayerView view = playerViews.get(p.getId());
+                    if (view != null) view.setPlayer(p); // affiche les vraies cartes
+                }
+            }
+            // Afficher les gains dans l'historique
+            for (Map.Entry<Player, Integer> e : winnings.entrySet()) {
+                if (e.getValue() > 0)
+                    addActionToHistory("SHOWDOWN", e.getKey().getName(),
+                        "Gagne " + e.getValue() + " j.");
+            }
+            refreshAllPlayerViews(true);
+        } catch (Exception e) {
+            System.err.println("Erreur showdown : " + e.getMessage());
+        }
+        handleHandOver();
+    }
+
+    private void handleHandOver() {
+        disableActions();
+        long playersWithChips = game.getPlayers().stream()
+            .filter(p -> p.getStack() > 0).count();
+
+        int delaySeconds = playersWithChips < 2 ? 3 : 2;
+        PauseTransition pause = new PauseTransition(Duration.seconds(delaySeconds));
+        pause.setOnFinished(e -> {
+            if (playersWithChips < 2) MainController.goToMenu();
+            else                      startNewHand();
+        });
+        pause.play();
+    }
+
+    // ── Bots ──────────────────────────────────────────────────────────────────
+
+    private void runBotTurn(Bot bot, Player current) {
+        BettingRound round       = game.getCurrentRound();
+        List<Card>   board       = new ArrayList<>(game.getBoard());
+        int          totalPot    = game.getTotalPot();
+        int          betLevel    = game.getCurrentBetLevel();
+        List<ActionType> valid   = new ArrayList<>(game.getValidActions());
+
+        Task<Action> task = new Task<>() {
+            @Override
+            protected Action call() {
+                return bot.decide(round, current, board, totalPot, betLevel, bigBlind, valid);
+            }
+        };
+
+        task.setOnSucceeded(e -> applyBotAction(task.getValue()));
+        task.setOnFailed(e -> {
+            System.err.println("Bot error: " + task.getException().getMessage());
+            applyBotAction(new Action(current, ActionType.FOLD, round));
+        });
+
+        Thread t = new Thread(task, "bot-thread");
+        t.setDaemon(true);
+        t.start();
+    }
+
+    private void applyBotAction(Action decision) {
+        try {
+            Action applied = applyToGame(decision.getType(), decision.getAmount());
+            logAction(applied);
+            refreshAllPlayerViews(false);
+            updatePotLabel();
+            processTurn();
+        } catch (Exception ex) {
+            System.err.println("Erreur application action bot : " + ex.getMessage());
+            processTurn();
+        }
+    }
+
+    // ── Actions du héro ───────────────────────────────────────────────────────
+
+    @FXML
+    private void onFold() {
+        disableActions();
+        applyHeroAction(ActionType.FOLD, 0);
+    }
+
+    @FXML
+    private void onCall() {
+        disableActions();
+        List<ActionType> valid = game.getValidActions();
+        if (valid.contains(ActionType.CHECK)) applyHeroAction(ActionType.CHECK, 0);
+        else                                  applyHeroAction(ActionType.CALL,  0);
+    }
+
+    @FXML
+    private void onRaise() {
+        disableActions();
+        int amount = (int) Math.round(raiseSlider.getValue());
+        List<ActionType> valid = game.getValidActions();
+        if (valid.contains(ActionType.RAISE))       applyHeroAction(ActionType.RAISE,  amount);
+        else if (valid.contains(ActionType.BET))    applyHeroAction(ActionType.BET,    amount);
+        else if (valid.contains(ActionType.ALL_IN)) applyHeroAction(ActionType.ALL_IN, amount);
+    }
 
     @FXML
     private void onBackToMenu() {
         MainController.goToMenu();
     }
+
+    private void applyHeroAction(ActionType type, int amount) {
+        try {
+            Action applied = applyToGame(type, amount);
+            logAction(applied);
+            refreshAllPlayerViews(false);
+            updatePotLabel();
+            processTurn();
+        } catch (Exception ex) {
+            System.err.println("Erreur action héro : " + ex.getMessage());
+            if (!game.isRoundComplete() && !game.isHandOver())
+                enableActions(game.getValidActions());
+        }
+    }
+
+    // Applique une action au moteur : FOLD/CHECK/CALL n'ont pas de montant.
+    private Action applyToGame(ActionType type, int amount) {
+        if (type == ActionType.BET || type == ActionType.RAISE || type == ActionType.ALL_IN)
+            return game.applyAction(type, amount);
+        return game.applyAction(type);
+    }
+
+    // ── UI helpers ────────────────────────────────────────────────────────────
+
+    private void enableActions(List<ActionType> valid) {
+        foldButton.setDisable(!valid.contains(ActionType.FOLD));
+
+        boolean canCheck = valid.contains(ActionType.CHECK);
+        boolean canCall  = valid.contains(ActionType.CALL);
+        checkCallButton.setDisable(!canCheck && !canCall);
+        if (canCall) {
+            int callAmt = game.getCallAmount();
+            checkCallButton.setText(String.format("Suivre (%d j.)", callAmt));
+        } else {
+            checkCallButton.setText("Parole");
+        }
+
+        boolean canRaise = valid.contains(ActionType.RAISE);
+        boolean canBet   = valid.contains(ActionType.BET);
+        boolean canAllIn = valid.contains(ActionType.ALL_IN);
+        raiseButton.setDisable(!canRaise && !canBet && !canAllIn);
+        raiseButton.setText(canRaise ? "Relancer" : canBet ? "Miser" : "All-in");
+
+        if (canRaise || canBet) {
+            Player heroPlayer = game.getPlayers().get(heroPlayerIndex);
+            int minR = game.getMinRaiseTo();
+            int maxR = heroPlayer.getStack();
+            raiseSlider.setDisable(false);
+            raiseSlider.setMin(minR);
+            raiseSlider.setMax(Math.max(minR, maxR));
+            raiseSlider.setValue(minR);
+        } else {
+            raiseSlider.setDisable(true);
+        }
+    }
+
+    private void disableActions() {
+        foldButton.setDisable(true);
+        checkCallButton.setDisable(true);
+        raiseButton.setDisable(true);
+        raiseSlider.setDisable(true);
+    }
+
+    private void refreshAllPlayerViews(boolean revealBotCards) {
+        String heroId = game.getPlayers().get(heroPlayerIndex).getId();
+        for (Player p : game.getPlayers()) {
+            PlayerView view = playerViews.get(p.getId());
+            if (view == null) continue;
+            view.setPlayer(p);
+            if (!revealBotCards && !p.getId().equals(heroId)) view.hideCards();
+            view.setFolded(p.isFolded() || p.isOut());
+            view.setActive(false);
+        }
+    }
+
+    private void refreshAllPlayerViews(boolean revealBotCards, Player highlighted) {
+        refreshAllPlayerViews(revealBotCards);
+        if (highlighted != null) highlightCurrentPlayer(highlighted);
+    }
+
+    // Surcharge sans argument (pendant la partie : on ne montre pas les cartes des bots)
+    private void refreshAllPlayerViews() {
+        refreshAllPlayerViews(false);
+    }
+
+    private void highlightCurrentPlayer(Player current) {
+        for (Player p : game.getPlayers()) {
+            PlayerView view = playerViews.get(p.getId());
+            if (view != null)
+                view.setActive(current != null && current.getId().equals(p.getId()));
+        }
+    }
+
+    private void updatePotLabel() {
+        updatePot(game.getTotalPot() / (double) bigBlind);
+    }
+
+    private void logAction(Action action) {
+        addActionToHistory(
+            action.getRound().name(),
+            action.getPlayer().getName(),
+            formatAction(action)
+        );
+    }
+
+    private String formatAction(Action action) {
+        return switch (action.getType()) {
+            case FOLD   -> "Se couche";
+            case CHECK  -> "Parole";
+            case CALL   -> "Suit (" + action.getAmount() + " j.)";
+            case BET    -> "Mise " + action.getAmount() + " j.";
+            case RAISE  -> "Relance " + action.getAmount() + " j.";
+            case ALL_IN -> "All-in (" + action.getAmount() + " j.)";
+        };
+    }
+
+    // ── API publique (appelée depuis l'extérieur ou le FXML) ──────────────────
 
     public void revealCommunityCards(Card... cards) {
         for (int i = 0; i < communityCards.length; i++) {
@@ -148,21 +461,20 @@ public class GameController {
         }
     }
 
-    public void updatePot(double amount) {
-        potView.setPot(amount);
-        potLabel.setText(String.format("%.1f BB", amount));
+    public void updatePot(double amountInBB) {
+        potView.setPot(amountInBB);
+        potLabel.setText(String.format("%.1f BB", amountInBB));
     }
 
-    // Max = all-in ; évite NaN si stack == 0
     public void configureRaiseSlider(double heroStack) {
         raiseSlider.setDisable(heroStack <= 0);
         raiseSlider.setMin(0);
         raiseSlider.setMax(heroStack > 0 ? heroStack : 1);
         raiseSlider.setValue(0);
-        raiseAmountLabel.setText("0 BB");
+        raiseAmountLabel.setText("0 j.");
     }
 
-    public void setRound(String round)                              { roundLabel.setText(round); }
-    public void addActionToHistory(String round, String p, String a){ timeline.addAction(round, p, a); }
-    public void clearHistory()                                      { timeline.clear(); }
+    public void setRound(String round)                               { roundLabel.setText(round); }
+    public void addActionToHistory(String round, String p, String a) { timeline.addAction(round, p, a); }
+    public void clearHistory()                                       { timeline.clear(); }
 }

@@ -156,9 +156,7 @@ public class BettingRoundManager {
         int stack      = player.getStack();
 
         int minRaiseTo = this.currentBetLevel + Math.max(this.lastRaiseAmount, this.bigBlind);
-        if (callAmount > 0) {
-        	valid.add(ActionType.FOLD);
-        }
+        valid.add(ActionType.FOLD);
         if (callAmount == 0) {
         	valid.add(ActionType.CHECK);
         }

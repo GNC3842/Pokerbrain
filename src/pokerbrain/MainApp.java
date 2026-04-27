@@ -22,12 +22,13 @@ public class MainApp extends Application {
         stage.show();
     }
 
-    public static void switchScene(String fxmlPath) throws IOException {
+    public static <T> T switchScene(String fxmlPath) throws IOException {
         FXMLLoader loader = new FXMLLoader(
             MainApp.class.getResource("/pokerbrain/ui/" + fxmlPath)
         );
         Parent root = loader.load();
         primaryStage.setScene(new Scene(root, 1200, 800));
+        return loader.getController();
     }
 
     public static Stage getPrimaryStage() {

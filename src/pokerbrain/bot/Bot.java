@@ -277,7 +277,7 @@ public class Bot {
 
         // Cascade de fallback
         if (wanted == ActionType.RAISE && valid.contains(ActionType.CALL)) {
-            return new Action(me, ActionType.CALL, 0, round); // amount ignoré pour CALL dans BRM
+            return buildAction(me, ActionType.CALL, valid, 0, round);
         }
         if (wanted == ActionType.BET && valid.contains(ActionType.CHECK)) {
             return new Action(me, ActionType.CHECK, round);
