@@ -10,4 +10,7 @@ module pokerbrain {
     exports pokerbrain.model.core;
     exports pokerbrain.model.game;
     exports pokerbrain.ui;
+    exports pokerbrain.bot;
+    exports pokerbrain.engine;
+    exports pokerbrain.simulator;
 }
