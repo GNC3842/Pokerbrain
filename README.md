@@ -13,7 +13,7 @@ Application de poker Texas Hold'em avec bots configurables, simulateur Monte Car
 ### Jouer une partie
 
 Affrontez 1 à 7 bots aux profils variés (TAG, Fish, LAG) autour d'une table de poker. 
-  
+Note: il faut choisir le nombre de bots avant de lancer (celui-ci ne s'affiche pas dans la case mais une fois sélectionné c'est bon).  
 
 ### Replay avec conseils
 
