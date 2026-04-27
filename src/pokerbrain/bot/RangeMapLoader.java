@@ -42,17 +42,24 @@ public final class RangeMapLoader {
 
     private RangeMapLoader() {}
 
-
     //Charge une RangeMap depuis le classpath.
     //Le fichier doit etre dans src/main/resources/.
     public static RangeMap fromClasspath(String resourcePath) throws IOException {
-        URL url = RangeMapLoader.class.getClassLoader().getResource(resourcePath);
-        if (url == null) {
-            throw new FileNotFoundException(
-                "Ressource introuvable dans le classpath : " + resourcePath);
+    	InputStream is = RangeMapLoader.class.getResourceAsStream("/" + resourcePath);
+    	if (is == null) {
+    		is = RangeMapLoader.class.getResourceAsStream(resourcePath);    	
+    	}
+    	if (is == null) {
+    		URL url = RangeMapLoader.class.getClassLoader().getResource(resourcePath);
+    		if (url != null) {
+    			is = url.openStream();
+    		}
+    	}
+        
+    	if (is == null) {
+            throw new FileNotFoundException("Ressource introuvable : " + resourcePath);
         }
-        try (InputStream is = url.openStream();
-             BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
+    	try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             return parse(br, resourcePath);
         }
     }
