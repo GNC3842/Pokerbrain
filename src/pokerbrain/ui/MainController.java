@@ -28,6 +28,7 @@ public class MainController {
             MainApp.switchScene(fxmlPath);
         } catch (IOException e) {
             System.err.println("Erreur navigation : " + e.getMessage());
+            e.printStackTrace();
         }
     }
 }
