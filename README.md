@@ -25,12 +25,8 @@ Rejouez une main pas-à-pas avec des conseils détaillés à chaque action : le 
 
 Consultez vos statistiques (VPIP, PFR, AF, WTSD, WSD, BB/100) et recevez des alertes automatiques sur les fuites détectées : VPIP trop élevé, PFR trop bas, jeu trop passif, etc.
 
-  
-
 ### Calculateur d'équité
-
-Saisissez votre main, un board optionnel et la main adverse pour calculer l'équité exacte via Monte Carlo (10 000 itérations, convergence adaptative).
-
+[a compléter]
 
 
 ## Prérequis
