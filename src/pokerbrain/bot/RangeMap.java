@@ -144,10 +144,10 @@ public class RangeMap {
 
     //Affichage de la heatmap en Ascii si besoin (a faire pour le fun)
 }
-    	
+/*
     }
-    
-    private static int idx(Rank r) { 
-    	return r.getValue() - 2; 
+
+    private static int idx(Rank r) {
+    	return r.getValue() - 2;
     }
-}
+*/

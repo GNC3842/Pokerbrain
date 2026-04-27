@@ -4,6 +4,7 @@ module pokerbrain {
 
     opens pokerbrain to javafx.fxml;
     opens pokerbrain.ui to javafx.fxml;
+    opens pokerbrain.bot;
 
     exports pokerbrain;
     exports pokerbrain.model.core;

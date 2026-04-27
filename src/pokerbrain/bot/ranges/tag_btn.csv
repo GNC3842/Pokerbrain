@@ -1,0 +1,65 @@
+# Heatmap TAG — Position BTN
+# Format : RANG_HAUT,RANG_BAS,SUITED,ACTION
+# SUITED : s=suited, o=offsuit, p=paire
+# ACTION : R=raise, C=call, F=fold
+# Sources : conventions standard 6-max NL, ranges GTO approximatives
+#
+# --- Paires ---
+A,A,p,R
+K,K,p,R
+Q,Q,p,R
+J,J,p,R
+T,T,p,R
+9,9,p,R
+8,8,p,R
+7,7,p,R
+6,6,p,R
+5,5,p,R
+4,4,p,R
+3,3,p,R
+2,2,p,R
+# --- Suited ---
+A,K,s,R
+A,Q,s,R
+A,J,s,R
+A,T,s,R
+A,9,s,R
+A,8,s,R
+A,7,s,R
+A,6,s,R
+A,5,s,R
+A,4,s,R
+A,3,s,R
+A,2,s,R
+K,Q,s,R
+K,J,s,R
+K,T,s,R
+K,9,s,R
+K,8,s,R
+K,7,s,R
+K,6,s,R
+K,5,s,R
+Q,J,s,R
+Q,T,s,R
+Q,9,s,R
+Q,8,s,R
+Q,7,s,R
+J,T,s,R
+J,9,s,R
+J,8,s,R
+T,9,s,R
+T,8,s,R
+9,8,s,R
+9,7,s,R
+8,7,s,C
+# --- Offsuit ---
+A,K,o,R
+A,Q,o,R
+A,J,o,R
+A,T,o,R
+A,9,o,R
+K,Q,o,R
+K,J,o,R
+Q,J,o,R
+Q,T,o,C
+J,T,o,C

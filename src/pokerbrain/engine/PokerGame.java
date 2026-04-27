@@ -25,16 +25,17 @@ public class PokerGame {
 
 	//Composants 
 	private final List<Player>      players;
-	private final PositionManager   positionManager;
+	private PositionManager         positionManager;
 	private final DealerEngine      dealerEngine;
 	private final PotManager        potManager;
 
-	//Etat de la main en cours 
+	//Etat de la main en cours
 	private BettingRound           currentRound;
 	private BettingRoundManager    roundManager;
 	private List<Action>           handHistory;
 	private boolean                handOver;
 	private int                    dealerSeat; // indice du BTN dans players[]
+	private PositionManager        currentPositionManager;
 
 	//Constructeur
 	public PokerGame(List<Player> players, int smallBlind, int bigBlind) {
@@ -84,6 +85,11 @@ public class PokerGame {
 
 		if (activePlayers.size() < 2)
 			throw new IllegalStateException("Pas assez de joueurs avec des jetons");
+
+		// Recréer le PositionManager selon le nombre de joueurs actifs (peut changer si joueur éliminé)
+		if (activePlayers.size() != this.positionManager.getPlayerCount()) {
+			this.positionManager = new PositionManager(activePlayers.size());
+		}
 
 		// Rotation du dealer
 		this.dealerSeat = (this.dealerSeat + 1) % activePlayers.size();
