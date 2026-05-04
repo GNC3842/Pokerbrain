@@ -32,14 +32,14 @@ public class PlayerStatistics {
 	private final int agressiveCount;
 	
 	private final int wentToShowDown;
-	private final int winAtShowDown;
+	private final int wonAtShowDown;
 	
 	private final int totalWinnings;
 	private final int bigBlind;
 	
 	//Constrcuteur
 	public PlayerStatistics(String playerId, String playerName, int handsPlayed,int vpipCount,
-			int pfrCount, int callCount, int agressiveCount, int wentToShowDown, int winAtShowDown,
+			int pfrCount, int callCount, int agressiveCount, int wentToShowDown, int wonAtShowDown,
 			int totalWinnings, int bigBlind) {
 		this.playerId = playerId;
 		this.playerName = playerName;
@@ -49,8 +49,58 @@ public class PlayerStatistics {
 		this.callCount = callCount;
 		this.agressiveCount = agressiveCount;
 		this.wentToShowDown = wentToShowDown;
-		this.winAtShowDown = winAtShowDown;
+		this.wonAtShowDown = wonAtShowDown;
 		this.totalWinnings = totalWinnings;
 		this.bigBlind = bigBlind;
 	}
+	
+	//Calcul des stats
+	public double getVPIP() {
+		if( this.handsPlayed == 0) {
+			return 0.0;
+		}
+		return this.vpipCount*100.0 / this.handsPlayed;
+	}
+	
+	public double getPFR() {
+		if(this.handsPlayed == 0) {
+			return 0.0;
+		}
+		return this.pfrCount*100.0 / this.handsPlayed;
+	}
+	
+	//Facteur d'agressivité
+	public double getAF() {
+		if(this.callCount == 0) {
+			return 0.0;
+		}
+		return (double) this.agressiveCount / this.callCount;
+	}
+	
+	//Went to show down
+	public double getWTSD() {
+		int postflopHands = this.vpipCount; //main jouée ie en postflop, le joueur ne s'est aps couhcé de suite
+		if(postflopHands == 0) {
+			return 0.0;
+		}
+		return this.wentToShowDown / postflopHands;
+	}
+	
+	//Won at show down
+	public double getWSD() {
+		if(this.wentToShowDown == 0) {
+			return 0.0;
+		}
+		return this.wonAtShowDown*100.0 / this.wentToShowDown;
+	}
+	
+	// BB/100 = gains nets / BB / mains * 100
+    public double getBBPer100() {
+        if (this.handsPlayed == 0 || this.bigBlind == 0) {
+            return 0.0;
+        }
+        return (this.totalWinnings * 100.0) / (this.bigBlind * this.handsPlayed);
+    }
+    
+    //Detcttion de profil en fonction de vpip et pfr
 }
