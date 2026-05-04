@@ -35,5 +35,101 @@ import java.util.*;
  */
 
 public class PlayerStatisticsCalculator {
+	
+	//Constructeur vide
+	private PlayerStatisticsCalculator() {}
+	
+	public static PlayerStatistics calculate(List<Hand> hands, String playerId, int bigBlind) {
+		String playerName = playerId;
+        int handsPlayed = 0;
+        int vpipCount = 0;
+        int pfrCount = 0;
+        int aggressiveCount = 0;
+        int callCount = 0;
+        int wentToShowdown = 0;
+        int wonAtShowdown = 0;
+        int totalInvested = 0;
+        int totalWon = 0;
+        
+        for (Hand hand : hands) {
+        	//On vérifie que le joueur a bien participé à la main
+        	boolean isInHand = false;
+        	for (Player p : hand.getPlayers()) {
+        		if(p.getId().equals(playerId)) {
+        			isInHand = true;
+        			playerName = p.getName();
+        			break;
+        		}
+        	}
+        	if (!isInHand) continue;
+        	handsPlayed ++;
+        	
+        	// Analyser les actions du joueur dans cette main
+            boolean didVPIP = false;
+            boolean didPFR  = false;
+            boolean reachedShowdown = false;
+            int investedThisHand = 0;
+            
+            for (Action action: hand.getActions()) {
+            	if(!action.getPlayer().getId().equals(playerId)) continue;
+            	ActionType type = action.getType();
+            	BettingRound round = action.getRound();
+            	
+            	//Vpip: argent volontaire preflop
+            	if(round == BettingRound.PREFLOP) {
+            		if (type == ActionType.CALL || type == ActionType.RAISE|| type == ActionType.BET || type == ActionType.ALL_IN) {
+                        didVPIP = true;
+                    }
+                    // PFR
+                    if (type.isAgressive()) {
+                        didPFR = true;
+                    }
+            	}
+            	
+            	//COmpteaurs globaux pour AF
+            	if (type.isAgressive()) {
+                    aggressiveCount++;
+                }
+                if (type == ActionType.CALL) {
+                    callCount++;
+                }
+                
+                //Investissement
+                if (type.involvesMoney()) {
+                    investedThisHand += action.getAmount();
+                }
+                
+                //Détection river (approximation showdown)
+                if (round == BettingRound.RIVER && type != ActionType.FOLD) {
+                    reachedShowdown = true;
+                }
+            }
+            if (didVPIP) {
+            	vpipCount ++;
+            }
+            if(didPFR) {
+            	pfrCount ++;
+            }
+            
+            totalInvested += investedThisHand;
+            
+            //Showdown
+            if (reachedShowdown) {
+                wentToShowdown++;
+                int winnings = hand.getWinnings().getOrDefault(playerId, 0);
+                if (winnings > 0) {
+                    wonAtShowdown++;
+                }
+            }
+            // Gains
+            int winAmount = hand.getWinnings().getOrDefault(playerId, 0);
+            totalWon += winAmount;
+        }
+        
+        //On peut maintenant calculer sur toutes ces mains
+        int netWinnings = totalWon - totalInvested;
+        return new PlayerStatistics(playerId, playerName,handsPlayed, vpipCount, pfrCount,
+                aggressiveCount, callCount,wentToShowdown, wonAtShowdown,netWinnings, bigBlind);
+	}
 
 }
