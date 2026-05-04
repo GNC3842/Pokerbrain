@@ -20,5 +20,37 @@ package pokerbrain.analyser.statistics;
 
 
 public class PlayerStatistics {
-
+	//Info joueur
+	private final String playerId;
+	private final String playerName;
+	
+	//Compteurs bruts
+	private final int handsPlayed;
+	private final int vpipCount;
+	private final int pfrCount;
+	private final int callCount;
+	private final int agressiveCount;
+	
+	private final int wentToShowDown;
+	private final int winAtShowDown;
+	
+	private final int totalWinnings;
+	private final int bigBlind;
+	
+	//Constrcuteur
+	public PlayerStatistics(String playerId, String playerName, int handsPlayed,int vpipCount,
+			int pfrCount, int callCount, int agressiveCount, int wentToShowDown, int winAtShowDown,
+			int totalWinnings, int bigBlind) {
+		this.playerId = playerId;
+		this.playerName = playerName;
+		this.handsPlayed = handsPlayed;
+		this.vpipCount = vpipCount;
+		this.pfrCount = pfrCount;
+		this.callCount = callCount;
+		this.agressiveCount = agressiveCount;
+		this.wentToShowDown = wentToShowDown;
+		this.winAtShowDown = winAtShowDown;
+		this.totalWinnings = totalWinnings;
+		this.bigBlind = bigBlind;
+	}
 }
