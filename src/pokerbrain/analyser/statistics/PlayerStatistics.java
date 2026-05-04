@@ -103,4 +103,27 @@ public class PlayerStatistics {
     }
     
     //Detcttion de profil en fonction de vpip et pfr
+    public String getProfile() {
+        double vpip = getVPIP();
+        double pfr  = getPFR();
+
+        if (vpip < 15 && pfr < 12) {
+            return "NIT";
+        }
+        if (vpip < 25 && pfr > 15){ 
+            return "TAG";
+        }
+        if (vpip > 30 && pfr > 20) {
+            return "LAG";
+        }
+        if (vpip > 40 && pfr < 10) {
+            return "FISH";
+        }
+        if (vpip < 20 && getAF() > 2){ 
+            return "ROCK";
+        }
+        return "UNKNOWN";
+    }
+    
+    
 }
