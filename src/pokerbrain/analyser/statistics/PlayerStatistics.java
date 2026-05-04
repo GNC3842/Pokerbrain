@@ -125,5 +125,55 @@ public class PlayerStatistics {
         return "UNKNOWN";
     }
     
+    //TOusl es getters
+    public String getPlayerId() {
+    	return this.playerId;
+    }
     
+    public String getPlayerName() {
+    	return this.playerName;
+    }
+    
+    public int getHandsPlayed() {
+    	return this.handsPlayed;
+    }
+    
+    public int getVpipCount() {
+    	return this.vpipCount;
+    }
+    
+    public int getPfrCount() {
+    	return this.pfrCount;
+    }
+    
+    public int getAgressiveCount() {
+    	return this.agressiveCount;
+    }
+    
+    public int getCallCount() {
+    	return this.callCount;
+    }
+    
+    public int getWentToShowDown() {
+    	return this.wentToShowDown;
+    }
+    
+    public int getWonAtShowDown() {
+    	return this.wonAtShowDown;
+    }
+    
+    public int getTotalWinnings() {
+    	return this.totalWinnings;
+    }
+    
+    public int getBigBlind() {
+    	return this.bigBlind;
+    }
+    
+    @Override
+    public String toString() {
+        return String.format("%s [%s] VPIP=%.0f%% PFR=%.0f%% AF=%.1f WTSD=%.0f%% WSD=%.0f%% BB/100=%.1f (%d mains)",
+            this.playerName, getProfile(), getVPIP(), getPFR(), getAF(),
+            getWTSD(), getWSD(), getBBPer100(), this.handsPlayed);
+    }
 }
