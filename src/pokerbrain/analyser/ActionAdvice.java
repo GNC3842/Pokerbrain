@@ -54,5 +54,141 @@ public class ActionAdvice {
         this.potOdds = b.potOdds;
         this.reasoning = b.reasoning;
     }
+    
+    //les getters as usal
+    public int getActionIndex() {
+    	return this.actionIndex;
+    }
+    
+    public String getPlayerName() {
+    	return this.playerName;
+    }
+    
+    public BettingRound getRound() {
+    	return this.round;
+    }
+    
+    public ActionType getPlayed() {
+    	return this.played;
+    }
+    
+    public int getPlayedAmount() {
+    	return this.playedAmount;
+    }
+    
+    public ActionType getRecommended() {
+    	return this.recommended;
+    }
+    
+    public int getRecommendedAmount() {
+    	return this.recommendedAmount;
+    }
+    
+    public int getScore() {
+    	return this.score;
+    }
+    
+    public double getEquity() {
+    	return this.equity;
+    }
+    
+    public double getPotOdds() {
+    	return this.potOdds;
+    }
+    
+    public String getReasonning() {
+    	return this.reasoning;
+    }
+    
+    //Methode utile
+    public boolean isMistake() {
+    	return this.played != this.recommended;
+    }
+    
+    public boolean isCriticalMistake() {
+    	return this.score < 40;
+    }
+    
+    //ToString
+    @Override
+    public String toString() {
+        return String.format("[%s] %s — Joué: %s | Optimal: %s | Score: %d/100 — %s",
+            round, playerName, played, recommended, score, reasoning);
+    }
+    
+    //Et le builder
+    public static final class Builder{
+    	private int actionIndex;
+        private String playerName = "";
+        private BettingRound round;
+        private ActionType played;
+        private int playedAmount;
+        private ActionType recommended;
+        private int recommendedAmount;
+        private int score = 100;
+        private double equity = -1;
+        private double potOdds = -1;
+        private String reasoning = "";
+        
+        public Builder actionIndex(int v) {
+        	this.actionIndex = v;
+        	return this;
+        }
+        
+        public Builder playerName(String v) {
+        	this.playerName = v;
+        	return this;
+        }
+        
+        public Builder round(BettingRound v) {
+        	this.round = v;
+        	return this;
+        }
+        
+        public Builder played(ActionType v) {
+        	this.played = v;
+        	return this;
+        }
+        
+        public Builder playedAmount(int v) {
+        	this.playedAmount = v;
+        	return this;
+        }
+        
+        public Builder recommended(ActionType v) {
+        	this.recommended = v;
+        	return this;
+        }
+        
+        public Builder recommendedAmount(int v) { 
+        	this.recommendedAmount = v; 
+        	return this; 
+        }
+        
+        public Builder score(int v){ 
+        	this.score = Math.max(0, Math.min(100, v));
+        	return this; 
+        }
+        
+        public Builder equity(double v){
+        	this.equity = v; 
+        	return this; 
+        }
+        
+        public Builder potOdds(double v){ 
+        	this.potOdds = v; 
+        	return this; 
+        }
+        
+        public Builder reasoning(String v){ 
+        	this.reasoning = v;
+        	return this; 
+        }
+        
+        public ActionAdvice build() { 
+        	return new ActionAdvice(this); 
+        }
+
+    }
 
 }
