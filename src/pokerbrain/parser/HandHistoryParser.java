@@ -32,7 +32,7 @@ public final class HandHistoryParser{
   public static List<Hand> parseMultiple(String content) throws ParseException {
     List<Hand> hands = new ArrayList<>();
     String[] blocks = content.split("\\n---\\s*\\n");
-
+    System.out.println("[Parser] Blocs bruts détectés dans le fichier : " + blocks.length); //log
     for (String handReaded : blocks) {
       handReaded = handReaded.trim();
       if (handReaded.isEmpty()) {
@@ -45,9 +45,11 @@ public final class HandHistoryParser{
 
   //Parsing d'une main
   private static Hand parseSingleHand(String blockDeJeu) throws ParseException {
+    System.out.println("[Parser] Début du parsing d'un nouveau bloc de jeu..."); //log
     String[] lines = blockDeJeu.split("\\n");
 
     Map<String, List<String>> sections = splitSections(lines);
+    System.out.println("[Parser] Sections trouvées dans ce bloc : " + sections.keySet());
 
     Hand.Builder builder = new Hand.Builder();
     List<Player> players = new ArrayList<>();
@@ -79,7 +81,7 @@ public final class HandHistoryParser{
     builder.board(board);
 
     parseShowdown(sections.getOrDefault("SHOWDOWN", Collections.emptyList()), builder);
-
+    System.out.println("[Parser] Fin du parsing du bloc")
     return builder.build();
   }
 
@@ -116,7 +118,8 @@ public final class HandHistoryParser{
 
       switch (key) {
         case "HandId":
-          builder.handId(value); 
+          builder.handId(value);
+          System.out.println("[Parser] HandId identifié : " + value); //log
           break;
         case "Table":
           builder.tableName(value); 

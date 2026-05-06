@@ -54,6 +54,7 @@ public final class HandHistoryWriter{
 
   //Ici la fonction de conversion principale avec un StringBuilder pour faciliter le travail comme le texte est un peu long
   public static String serialize(Hand hand){
+    System.out.println("[Writer] Sérialisation de la main ID : " + hand.getHandId() + " | Date : " + hand.getDate()); //log
     StringBuilder build = new StringBuilder(); //On l'instancie
 
     //Portion du header
@@ -194,6 +195,7 @@ public final class HandHistoryWriter{
 
     String content = serialize(hand);
     boolean fileExists = Files.exists(filePath) && Files.size(filePath) > 0;
+    System.out.println("[Writer] Écriture dans : " + filePath.toAbsolutePath() + " (Fichier existant : " + fileExists + ")");//log
 
     try (BufferedWriter writer = Files.newBufferedWriter(filePath,StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
       if (fileExists) {

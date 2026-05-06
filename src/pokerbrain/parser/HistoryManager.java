@@ -48,10 +48,11 @@ public final class HistoryManager {
   public HistoryManager() {
     String userHome = System.getProperty("user.home");
     this.historyDir = Paths.get(userHome, DIR_NAME, HISTORY_DIR);
+    System.out.println("[HistoryManager] Dossier d'historique initialisé et valide : " + historyDir.toAbsolutePath());//log
     try {
       Files.createDirectories(historyDir);
     } catch (IOException e) {
-      System.err.println("[HistoryManager] Impossible de créer " + historyDir + " : " + e.getMessage());
+      System.err.println("[HistoryManager] Impossible de créer " + historyDir + " : " + e.getMessage());//log
     }
   }
 
@@ -67,6 +68,7 @@ public final class HistoryManager {
 
     LocalDate date = extractDate(hand);
     Path filePath = getFileForDate(date);
+    System.out.println("[HistoryManager] Tentative de sauvegarde de la main " + hand.getHandId() + " pour la date : " + date);//log 
 
     try {
       HandHistoryWriter.appendToFile(hand, filePath);
@@ -81,11 +83,12 @@ public final class HistoryManager {
     List<Hand> allHands = new ArrayList<>();
 
     List<Path> files = listHistoryFiles();
+    System.out.println("[HistoryManager] Chargement global : " + files.size() + " fichiers historiques trouvés (.txt).");//log
     for (Path file : files) {
       List<Hand> hands = loadFile(file);
       allHands.addAll(hands);
     }
-
+    System.out.println("[HistoryManager] Fin du chargement global. Total de mains chargées en mémoire : " + allHands.size());//log
     return allHands;
   }
 
