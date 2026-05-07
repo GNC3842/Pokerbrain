@@ -4,7 +4,8 @@ import pokerbrain.model.core.Card;
 import pokerbrain.model.game.Action;
 import pokerbrain.model.game.Player;
 
-
+import java.time.Instant;
+import java.util.*;
 
 /**
  *Enregistrement immuable d'une main complète jouée
@@ -88,7 +89,7 @@ public final class Hand{
       private List<GameState> gameStates = new ArrayList<>();
       private Map<String, Integer> winnings = new LinkedHashMap<>();
 
-      public Builder handId(String temp){
+      public Builder handId(String tempo){
          this.handId = tempo;
          return this;
       }

@@ -6,6 +6,7 @@ import pokerbrain.model.game.PlayerStatus;
 import pokerbrain.model.game.Position;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -39,6 +40,7 @@ public class PlayerState{
 
   //Méthode pricnpale : crée un snapshot depuis un Player mutable
   public static PlayerState of(Player joueur) {
+    System.out.println("[PlayerState] Snapshot créé pour " + joueur.getName() + " | Stack: " + joueur.getStack() + " | Cartes: " + joueur.getHoleCards());//log
     return new PlayerState(
             joueur.getId(), joueur.getName(), joueur.getStack(), joueur.getCurrentBet(),
             joueur.getStatus(), joueur.getPosition(), joueur.getSeat(),

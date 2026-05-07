@@ -4,6 +4,11 @@ import pokerbrain.engine.PokerGame;
 import pokerbrain.model.game.Action;
 import pokerbrain.model.game.Player;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
 /**
  * Enregistreur de main en temps réel — bridge entre PokerGame et Hand.Builder.
  *
@@ -37,6 +42,7 @@ public final class HandRecord{
   }
 
   public void recordAction(Action action) {
+    System.out.println("[HandRecord] Enregistrement Action : " + action.getPlayer().getName() + " -> " + action.getType() + " (" + action.getAmount() + ")");//log
     builder.addAction(action);
     List<PlayerState> playerStates = new ArrayList<>();
     for (Player player : game.getPlayers()) {
@@ -49,6 +55,7 @@ public final class HandRecord{
         currentId = game.getCurrentPlayer().getId();
       } catch (Exception e) {
         //Round terminé entre-temps
+        System.out.println("[HandRecord] Exception levée: " + e.toString());//log
       }
     }
 
@@ -63,6 +70,7 @@ public final class HandRecord{
             .lastAction(action)
             .build();
         builder.addGameState(gs);
+    System.out.println("[HandRecord] Snapshot créé - Round: " + game.getCurrentRound() + " | Pot Total: " + game.getTotalPot() + " | Joueurs actifs: " + playerStates.size());//log
   }
 
   public Hand buildHand(Map<Player, Integer> winnings) {
@@ -72,6 +80,7 @@ public final class HandRecord{
         builder.addWinning(entry.getKey().getId(), entry.getValue());
       }
     }
+    System.out.println("[HandRecord] Finalisation de la main : " + builder.getActions().size() + " actions et " + builder.getGameStates().size() + " snapshots enregistrés.");//log
     return builder.build();
   }
 
