@@ -59,5 +59,90 @@ public final class Hand{
       this.gameStates = Collections.unmodifiableList(new ArrayList<>(b.gameStates));
       this.winnings = Collections.unmodifiableMap(new LinkedHashMap<>(b.winnings));
     }
+
+   public String getHandId(){ return handId; }
+   public String getHeroId(){ return heroId; }
+   public String getTableName() { return tableName; }
+   public int getSmallBlind(){ return smallBlind; }
+   public int getBigBlind(){ return bigBlind; }
+   public Instant getDate(){ return date; }
+   public List<Player> getPlayers(){ return players; }
+   public List<PlayerState> getInitialStates(){ return initialStates; }
+   public List<Card> getBoard(){ return board; }
+   public List<Action> getActions(){ return actions; }
+   public List<GameState> getGameStates() { return gameStates; }
+   public Map<String, Integer> getWinnings(){ return winnings; }
+   public int getHeroWinnings() {return winnings.getOrDefault(heroId, 0);}
+
+   public static final class Builder {
+      private String handId;
+      private String heroId;
+      private String tableName = "Table PokerBrain";
+      private int smallBlind = 1;
+      private int bigBlind = 2;
+      private Instant date;
+      private List<Player> players = new ArrayList<>();
+      private List<PlayerState> initialStates = new ArrayList<>();
+      private List<Card> board = new ArrayList<>();
+      private List<Action> actions = new ArrayList<>();
+      private List<GameState> gameStates = new ArrayList<>();
+      private Map<String, Integer> winnings = new LinkedHashMap<>();
+
+      public Builder handId(String temp){
+         this.handId = tempo;
+         return this;
+      }
+      public Builder heroId(String tempo){
+         this.heroId = tempo;
+         return this; 
+      }
+      public Builder tableName(String tempo){
+         this.tableName = tempo;
+         return this;
+      }
+      public Builder smallBlind(int tempo){ 
+         this.smallBlind = tempo;
+         return this;
+      }
+      public Builder bigBlind(int tempo){
+         this.bigBlind = tempo;
+         return this;
+      }
+      public Builder date(Instant tempo){
+         this.date = tempo;
+         return this;
+      }
+      public Builder players(List<Player> tempo){
+         this.players = tempo;
+         return this;
+      }
+      public Builder initialStates(List<PlayerState> tempo) {
+         this.initialStates = tempo;
+         return this;
+      }
+      public Builder board(List<Card> tempo){
+         this.board = tempo;
+         return this;
+      }
+
+      public Builder addAction(Action actionTemp) {
+         this.actions.add(actionTemp);
+         return this;
+      }
+
+      public Builder addGameState(GameState gameStateTemp) {
+         this.gameStates.add(gameStateTemp);
+         return this;
+      }
+
+      public Builder addWinning(String playerIdTemp, int amountTemp) {
+         this.winnings.merge(playerIdTemp, amountTemp, Integer::sum);
+         return this;
+      }
+
+      public Hand build() {
+         return new Hand(this);
+      }
+    }
 }
 
