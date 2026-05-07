@@ -22,3 +22,20 @@ import pokerbrain.model.game.Player;
  *       .addWinning("hero", 15)
  *       .build();
  */
+
+public final class Hand{
+   private final String handId;
+   private final String heroId;
+   private final String tableName;
+   private final int smallBlind;
+   private final int bigBlind;
+   private final Instant date;
+   private final List<Player> players;
+   private final List<PlayerState> initialStates;
+   private final List<Card> board;
+   private final List<Action> actions;
+   private final List<GameState> gameStates;
+   private final Map<String, Integer> winnings; // on associe le playerId avec la somme gagnée
+   
+}
+
