@@ -36,6 +36,28 @@ public final class Hand{
    private final List<Action> actions;
    private final List<GameState> gameStates;
    private final Map<String, Integer> winnings; // on associe le playerId avec la somme gagnée
-   
+
+   private Hand(Builder b) {
+      if (b.handId != null ){
+         this.handId = b.handId;
+      } else {
+         this.handId = UUID.randomUUID().toString();
+      }
+      this.heroId = b.heroId;
+      this.tableName = b.tableName;
+      this.smallBlind = b.smallBlind;
+      this.bigBlind = b.bigBlind;
+      if(b.date != null){
+         this.date = b.date;
+      } else {
+         this.date = Instant.now();
+      }
+      this.players = Collections.unmodifiableList(new ArrayList<>(b.players));
+      this.initialStates = Collections.unmodifiableList(new ArrayList<>(b.initialStates));
+      this.board = Collections.unmodifiableList(new ArrayList<>(b.board));
+      this.actions = Collections.unmodifiableList(new ArrayList<>(b.actions));
+      this.gameStates = Collections.unmodifiableList(new ArrayList<>(b.gameStates));
+      this.winnings = Collections.unmodifiableMap(new LinkedHashMap<>(b.winnings));
+    }
 }
 
