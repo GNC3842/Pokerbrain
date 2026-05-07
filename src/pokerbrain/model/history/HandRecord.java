@@ -35,4 +35,48 @@ public final class HandRecord{
     this.builder.initialStates(initStates);
     this.builder.players(new ArrayList<>(game.getPlayers()));
   }
+
+  public void recordAction(Action action) {
+    builder.addAction(action);
+    List<PlayerState> playerStates = new ArrayList<>();
+    for (Player player : game.getPlayers()) {
+      playerStates.add(PlayerState.of(player));
+    }
+
+    String currentId = null;
+    if (!game.isRoundComplete() && !game.isHandOver()) {
+      try {
+        currentId = game.getCurrentPlayer().getId();
+      } catch (Exception e) {
+        //Round terminé entre-temps
+      }
+    }
+
+    GameState gs = new GameState.Builder()
+            .round(game.getCurrentRound())
+            .board(game.getBoard())
+            .totalPot(game.getTotalPot())
+            .sidePots(game.getSidePots())
+            .players(playerStates)
+            .currentPlayerId(currentId)
+            .currentBetLevel(game.getCurrentBetLevel())
+            .lastAction(action)
+            .build();
+        builder.addGameState(gs);
+  }
+
+  public Hand buildHand(Map<Player, Integer> winnings) {
+    builder.board(game.getBoard());
+    if (winnings != null) {
+      for (Map.Entry<Player, Integer> entry : winnings.entrySet()) {
+        builder.addWinning(entry.getKey().getId(), entry.getValue());
+      }
+    }
+    return builder.build();
+  }
+
+  //Finalise sans informations de gains au cas pù
+  public Hand buildHand() {
+    return buildHand(null);
+  }
 }
