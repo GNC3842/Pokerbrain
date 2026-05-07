@@ -18,5 +18,21 @@ import pokerbrain.model.game.Player;
  */
 
 public final class HandRecord{
-  
+  private final Hand.Builder builder;
+  private final PokerGame game;
+
+  //Constructeur
+  public HandRecord(PokerGame game, String heroId) {
+    Objects.requireNonNull(game, "Game ne peut pas être null");
+    this.game = game;
+    this.builder = new Hand.Builder().heroId(heroId).smallBlind(game.getSmallBlind()).bigBlind(game.getBigBlind());
+
+    // Snapshot initial des joueurs
+    List<PlayerState> initStates = new ArrayList<>();
+    for (Player player : game.getPlayers()) {
+      initStates.add(PlayerState.of(player));
+    }
+    this.builder.initialStates(initStates);
+    this.builder.players(new ArrayList<>(game.getPlayers()));
+  }
 }
