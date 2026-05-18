@@ -144,6 +144,15 @@ public final class Hand{
       public Hand build() {
          return new Hand(this);
       }
+      
+      //Getters pour log
+      public List<Action> getActions(){
+    	  return this.actions;
+      }
+      
+      public List<GameState> getGameStates(){
+    	  return this.gameStates;
+      }
     }
 }
 
