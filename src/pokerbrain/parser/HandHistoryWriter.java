@@ -77,7 +77,7 @@ public final class HandHistoryWriter{
     build.append("PLAYERS\n");
     List<PlayerState> states = hand.getInitialStates();
     if (states != null && !states.isEmpty()) {
-      for (PlayerState joueurs : states) {
+      for (PlayerState joueur : states) {
         build.append("Player ").append(joueur.getId()).append(": ");
         build.append(joueur.getName()).append(" - ");
         build.append("Seat ").append(joueur.getSeat()).append(" - ");
@@ -136,7 +136,7 @@ public final class HandHistoryWriter{
     boolean hasActions = false;
     for (Action a : actions){
       if(a.getRound() == round){
-        hadActions = true;
+        hasActions = true;
         break;
       }
     }
@@ -148,7 +148,7 @@ public final class HandHistoryWriter{
 
     // Board (pour FLOP/TURN/RIVER)
     if (boardLine != null) {
-      build.append("Board: ").append(boardLine).append('\n');
+      sb.append("Board: ").append(boardLine).append('\n');
     }
 
     //Actions
