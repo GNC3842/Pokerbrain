@@ -17,6 +17,8 @@ public class MainApp extends Application {
     	
     	// Lancer la génération MC en background (thread daemon)
         AppContext.initAsync();
+        //Charger l'historique
+        pokerbrain.ui.SessionData.initHistory();
         
         primaryStage = stage;
         switchScene("fxml/MainMenu.fxml");
