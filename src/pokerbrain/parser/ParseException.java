@@ -9,13 +9,13 @@ public class ParseException extends Exception{
 
   //On fait 2 constructeurs pour nois aider a debug quand au moment du parsing
   public ParseException(String message, int numeroLigne, String contenu){
-    super("Ligne " + numeroLigne + ": " + message + "--> [" + contenu + "]")
+    super("Ligne " + numeroLigne + ": " + message + "--> [" + contenu + "]");
     this.numeroLigne = numeroLigne;
     this.contenuLigne = contenu;
   }
 
    public ParseException(String message, int numeroLigne, String contenu, Throwable cause){
-    super("Ligne " + numeroLigne + ": " + message + "--> [" + contenu + "]", cause)
+    super("Ligne " + numeroLigne + ": " + message + "--> [" + contenu + "]", cause);
     this.numeroLigne = numeroLigne;
     this.contenuLigne = contenu;
   }
