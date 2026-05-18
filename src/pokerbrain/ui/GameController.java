@@ -13,6 +13,9 @@ import pokerbrain.bot.Bot;
 import pokerbrain.engine.PokerGame;
 import pokerbrain.model.core.Card;
 import pokerbrain.model.game.*;
+import pokerbrain.AppContext;
+import pokerbrain.simulator.MonteCarloEngine;
+import pokerbrain.model.history.HandRecord;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -50,6 +53,7 @@ public class GameController {
     @FXML private Slider raiseSlider;
     @FXML private Label  raiseAmountLabel;
 
+
     private PlayerView     hero;
     private PotView        potView;
     private CardView[]     communityCards;
@@ -63,6 +67,8 @@ public class GameController {
     private int heroPlayerIndex;
     private int smallBlind;
     private int bigBlind;
+    private Label equityLabel;
+    private HandRecord currentRecord;
 
     @FXML
     public void initialize() {
@@ -75,6 +81,10 @@ public class GameController {
 
         potView = new PotView();
         potContainer.getChildren().add(potView);
+
+        equityLabel = new Label();
+        equityLabel.setStyle("-fx-text-fill: #7fcf9f; -fx-font-size: 14px; -fx-font-weight: bold;");
+        potContainer.getChildren().add(equityLabel);
 
         timeline = new ActionTimeline();
         timelineContainer.getChildren().add(timeline);
@@ -165,6 +175,7 @@ public class GameController {
             clearHistory();
             for (CardView cv : communityCards) cv.showEmpty();
             game.startNewHand();
+            currentRecord = new HandRecord(game, "hero");
             refreshAllPlayerViews();
             updatePotLabel();
             setRound(game.getCurrentRound().name());
@@ -202,6 +213,7 @@ public class GameController {
             pause.play();
         } else {
             enableActions(game.getValidActions());
+            updateHeroEquity();
         }
     }
 
@@ -270,6 +282,10 @@ public class GameController {
         Map<Player, Integer> winnings = new HashMap<>();
         try {
             winnings = game.showdown();
+            if (currentRecord != null) {
+                SessionData.addHand(currentRecord.buildHand(winnings));
+                currentRecord = null;
+            }
             String heroId = game.getPlayers().get(heroPlayerIndex).getId();
             for (Player p : game.getPlayers()) {
                 if (!p.isFolded() && !p.isOut()) {
@@ -309,7 +325,11 @@ public class GameController {
     }
 
     private void handleHandOver() {
-    	// Popup si le héro gagne par fold des adversaires
+    	if (currentRecord!= null){
+            SessionData.addHand(currentRecord.buildHand());
+            currentRecord = null;
+        }
+        // Popup si le héro gagne par fold des adversaires
     	Player heroPlayer = game.getPlayers().get(heroPlayerIndex);
     	if (!heroPlayer.isFolded() && !heroPlayer.isOut()) {
     	    long activePlayers = game.getPlayers().stream()
@@ -348,7 +368,10 @@ public class GameController {
         Task<Action> task = new Task<>() {
             @Override
             protected Action call() {
-                return bot.decide(round, current, board, totalPot, betLevel, bigBlind, valid);
+                int activeOpp = (int) game.getPlayers().stream()
+                    .filter(p -> !p.isFolded() && !p.isOut() && !p.getId().equals(current.getId()))
+                    .count();
+                return bot.decide(round, current, board, totalPot, betLevel, bigBlind, valid, activeOpp);
             }
         };
 
@@ -422,10 +445,23 @@ public class GameController {
     }
 
     // Applique une action au moteur : FOLD/CHECK/CALL n'ont pas de montant.
-    private Action applyToGame(ActionType type, int amount) {
+    /*private Action applyToGame(ActionType type, int amount) {
         if (type == ActionType.BET || type == ActionType.RAISE || type == ActionType.ALL_IN)
             return game.applyAction(type, amount);
         return game.applyAction(type);
+    */}
+    private Action applyToGame(ActionType type, int amount){
+        Action result;
+        if (type == ActionType.BET || type == ActionType.RAISE || type == ActionType.ALL_IN){
+            result = game.applyAction(type, amount);
+        }
+        else{
+            result = game.applyAction(type);
+        }
+        if (currentRecord != null) {
+            currentRecord.recordAction(result);
+        }
+        return result;
     }
 
     // ── UI helpers ────────────────────────────────────────────────────────────
@@ -467,6 +503,34 @@ public class GameController {
         checkCallButton.setDisable(true);
         raiseButton.setDisable(true);
         raiseSlider.setDisable(true);
+        equityLabel.setText("");
+    }
+
+    private int countActiveOpponents() {
+        String heroId = game.getPlayers().get(heroPlayerIndex).getId();
+        return (int) game.getPlayers().stream()
+            .filter(p -> !p.isFolded() && !p.isOut() && !p.getId().equals(heroId))
+            .count();
+    }
+
+    private void updateHeroEquity() {
+        Player heroP = game.getPlayers().get(heroPlayerIndex);
+        List<Card> hole = heroP.getHoleCards();
+        if (hole.size() != 2) {
+            return;
+        }
+        List<Card> board = new ArrayList<>(game.getBoard());
+        int nbOpp = countActiveOpponents();
+        new Thread(() -> {
+            try {
+                MonteCarloEngine engine = AppContext.getEngine();
+                MonteCarloEngine.EquityResult result = engine.calculateEquity(hole, board, 3000, Math.max(1, nbOpp));
+                double eq = result.equity();
+                javafx.application.Platform.runLater(() ->
+                equityLabel.setText(String.format("Équité : %.1f%%", eq))
+            );
+        } catch (Exception e) { /* silencieux */ }
+        }).start();
     }
 
     private void refreshAllPlayerViews(boolean revealBotCards) {
