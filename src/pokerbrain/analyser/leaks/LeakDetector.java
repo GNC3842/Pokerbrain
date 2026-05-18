@@ -114,7 +114,7 @@ public class LeakDetector {
 
         //WSD
         double wsd = stats.getWSD();
-        if (wsd < 45 && stats.getWentToShowdown() >= 10) {
+        if (wsd < 45 && stats.getWentToShowDown() >= 10) {
             leaks.add(new Leak(LeakSeverity.WARNING, "WSD", wsd, WSD_MIN,
                  "WSD bas - vous perdez souvent au showdown",
                  "Améliorez votre sélection de mains pour le showdown."));
