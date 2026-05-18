@@ -67,7 +67,7 @@ public class Bot {
     //Point d'entrée : retourne l'action que le bot décide de jouer.
     public Action decide(BettingRound round, Player me, List<Card> board,
                          int totalPot, int currentBetLevel, int bigBlind,
-                         List<ActionType> validActions) {
+                         List<ActionType> validActions, int nbAdversaires) {
         if (validActions == null || validActions.isEmpty()) {
             throw new IllegalArgumentException("Aucune action valide");
         }
@@ -75,7 +75,7 @@ public class Bot {
         if (round == BettingRound.PREFLOP) {
             return decidePreflopFromHeatmap(me, currentBetLevel, bigBlind, round, validActions);
         } else {
-            return decidePostflop(me, board, totalPot, currentBetLevel, bigBlind, round, validActions);
+            return decidePostflop(me, board, totalPot, currentBetLevel, bigBlind, round, validActions, nbAdversaires);
         }
     }
 
@@ -157,8 +157,8 @@ public class Bot {
      */
     private Action decidePostflop(Player me, List<Card> board, int totalPot,
                                    int currentBetLevel, int bigBlind,
-                                   BettingRound round, List<ActionType> valid) {
-        double equity = estimateEquity(me, board);
+                                   BettingRound round, List<ActionType> valid, int nbAdversaires) {
+        double equity = estimateEquity(me, board, nbAdversaires);
 
         // Facteur de barrel (réduction sur turn/river)
         double barrelFactor = 1.0;
@@ -233,7 +233,7 @@ public class Bot {
     }
 
     //Estimation d'équité
-    private double estimateEquity(Player me, List<Card> board) {
+    private double estimateEquity(Player me, List<Card> board, int nbAdversaires) {
         if (engine == null) {
             return 0.5;
         }
@@ -246,7 +246,7 @@ public class Bot {
 
         try {
             MonteCarloEngine.EquityResult result =
-                engine.calculateEquity(hole, board, MC_ITERATIONS, 1);
+                engine.calculateEquity(hole, board, MC_ITERATIONS, Math.max(1,nbAdversaires));
             return result.equity() / 100.0; // equity() retourne un pourcentage
         } catch (Exception e) {
             return 0.5;
