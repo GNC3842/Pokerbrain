@@ -41,6 +41,15 @@ public final class GameState{
     this.currentBetLevel = builder.currentBetLevel;
     this.lastAction = builder.lastAction; 
   }
+  
+  public BettingRound getRound(){ return round; }
+  public List<Card> getBoard(){ return board; }
+  public int getTotalPot(){ return totalPot; }
+  public List<SidePot> getSidePots(){ return sidePots; }
+  public List<PlayerState> getPlayers() { return players; }
+  public String getCurrentPlayerId(){ return currentPlayerId; }
+  public int getCurrentBetLevel(){ return currentBetLevel; }
+  public Action getLastAction(){ return lastAction; }
 
   public static final class Builder {
     private BettingRound round;
@@ -92,14 +101,5 @@ public final class GameState{
     public GameState build() { 
       return new GameState(this); 
     }
-
-    public BettingRound getRound(){ return round; }
-    public List<Card> getBoard(){ return board; }
-    public int getTotalPot(){ return totalPot; }
-    public List<SidePot> getSidePots(){ return sidePots; }
-    public List<PlayerState> getPlayers() { return players; }
-    public String getCurrentPlayerId(){ return currentPlayerId; }
-    public int getCurrentBetLevel(){ return currentBetLevel; }
-    public Action getLastAction(){ return lastAction; }
   }
 }
