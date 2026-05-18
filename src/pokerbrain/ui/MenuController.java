@@ -8,6 +8,8 @@ import pokerbrain.bot.Bot;
 import pokerbrain.bot.BotProfile;
 import pokerbrain.bot.BotProfileFactory;
 import pokerbrain.model.game.Player;
+import javafx.scene.control.Label;
+import pokerbrain.model.history.Hand;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -20,12 +22,53 @@ public class MenuController {
     private static final int BIG_BLIND   = 10;
 
     @FXML private ComboBox<String> numberOfBots;
+    @FXML private ComboBox<String> replayCombo;
+    @FXML private Label handsCountLabel;
+
+    // Mains chargées depuis le disque pour le replay
+    private List<Hand> availableHands;
     
     @FXML
     public void initialize() {
         for (int i = 1; i <= 7; i++)
             numberOfBots.getItems().add(i + (i == 1 ? " bot" : " bots"));
         numberOfBots.getSelectionModel().select(2); // 3 bots par défaut
+        refreshReplayList();
+    }
+
+    private void refreshReplayList() {
+        availableHands = SessionData.getAllHands();
+        int count = availableHands.size();
+        if (count > 1){
+            handsCountLabel.setText(count + " main" + "s" + " en historique");
+        } else {
+            handsCountLabel.setText(count + " main" + " en historique");
+        }
+
+        replayCombo.getItems().clear();
+        if (availableHands.isEmpty()) {
+            replayCombo.getItems().add("Aucune main disponible");
+            replayCombo.getSelectionModel().select(0);
+            replayCombo.setDisable(true);
+        } else {
+            for (int i = availableHands.size() - 1; i >= Math.max(0, availableHands.size() - 50); i--) {
+                Hand h = availableHands.get(i);
+                String dateStr;
+                if (h.getDate() != null){
+                    dateStr = h.getDate().toString().substring(0, 10);
+                } else {
+                    dateStr = "?";
+                }
+                String label = "#" + (i + 1) + " [" + dateStr + "] "+ h.getActions().size() + " actions";
+                int w = h.getHeroWinnings();
+                if (w > 0) {
+                    label += " (+" + w + ")";
+                }
+                replayCombo.getItems().add(label);
+            }
+            replayCombo.getSelectionModel().select(0);
+            replayCombo.setDisable(false);
+        }
     }
     
     @FXML
