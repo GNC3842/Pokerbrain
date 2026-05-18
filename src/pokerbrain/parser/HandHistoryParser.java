@@ -81,7 +81,7 @@ public final class HandHistoryParser{
     builder.board(board);
 
     parseShowdown(sections.getOrDefault("SHOWDOWN", Collections.emptyList()), builder);
-    System.out.println("[Parser] Fin du parsing du bloc")
+    System.out.println("[Parser] Fin du parsing du bloc");
     return builder.build();
   }
 
