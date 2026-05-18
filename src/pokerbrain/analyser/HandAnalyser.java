@@ -190,6 +190,230 @@ public class HandAnalyser {
         return builder.build();
     }
     
+    //Analyse postfflop avec montecarlo et pot odds
+    /**
+     * Le raisonnement suit la logique EV :
+     *   - Calculer l'équité MC exacte à ce moment
+     *   - Si face à une mise : comparer equity vs break-even equity (pot odds)
+     *   - Sinon : évaluer si un value-bet ou un check était correct
+     */
+    private ActionAdvice analysePostflopAction(int index, Action action, Hand hand,
+                                                GameState stateBefore) {
+        Player hero = action.getPlayer();
+        List<Card> hole = hero.getHoleCards();
+        if (hole.size() != 2) {
+            throw new IllegalStateException("Le joueur " + hero.getName() + " n'a pas 2 cartes lors de l'analyse postflop (taille="
+        + hole.size() + "). Main corrompue ou HandRecord mal construit.");
+        };
+
+        // Board au moment de l'action
+        List<Card> board;
+        if (stateBefore != null) {
+            board = stateBefore.getBoard();
+        } else {
+            board = hand.getBoard();
+        }
+        if (board == null || board.isEmpty()) return null;
+
+        // Calculer l'équité MC
+        int nbOpponents = countActiveOpponents(stateBefore, hero.getId());
+        if (nbOpponents < 1) {
+        	nbOpponents = 1;
+        }
+
+        double equity;
+        try {
+            MonteCarloEngine.EquityResult result = engine.calculateEquity(hole, board, MC_ITERATIONS, nbOpponents);
+            equity = result.equity() / 100.0; // convertir % -> ratio
+        } catch (Exception e) {
+            equity = 0.5; // fallback
+        }
+
+        // Informations du pot
+        int totalPot;
+        int currentBetLevel;
+        if (stateBefore != null) {
+        	totalPot = stateBefore.getTotalPot();
+        	currentBetLevel = stateBefore.getCurrentBetLevel();
+        } else {
+        	totalPot = 0;
+        	currentBetLevel = 0;
+        }
+
+        ActionType played = action.getType();
+        BettingRound round = action.getRound();
+
+        ActionAdvice.Builder builder = new ActionAdvice.Builder()
+            .actionIndex(index)
+            .playerName(hero.getName())
+            .round(round)
+            .played(played)
+            .playedAmount(action.getAmount())
+            .equity(equity);
+
+        boolean facingBet = currentBetLevel > 0
+            && (played == ActionType.CALL || played == ActionType.FOLD
+                || played == ActionType.RAISE || played == ActionType.ALL_IN);
+
+        if (facingBet) {
+            return analyseFacingBet(builder, played, action.getAmount(),
+                                     equity, totalPot, currentBetLevel, hero, round);
+        } else {
+            return analyseNobet(builder, played, action.getAmount(),
+                                 equity, totalPot, hero, round);
+        }
+    }
+    
+    /**
+     * Analyse quand le héro fait face à une mise adverse
+     * Compare l'equity à la cote du pot pour déterminer l'action EV+.
+     */
+    private ActionAdvice analyseFacingBet(ActionAdvice.Builder builder,ActionType played, int playedAmount,
+                                           double equity, int pot, int betLevel,
+                                           Player hero, BettingRound round) {
+        int callAmount = Math.max(1, betLevel - hero.getCurrentBet());
+        double breakEven = PotOddsCalculator.breakEvenEquity(pot, callAmount);
+        double callEV = PotOddsCalculator.callEV(equity, pot, callAmount);
+
+        builder.potOdds(breakEven);
+
+        String eqStr = String.format("%.0f%%", equity * 100);
+        String beStr = String.format("%.0f%%", breakEven * 100);
+        String evStr = String.format("%+.1f BB", callEV);
+
+        if (equity >= VALUE_THRESHOLD) {
+            // Main très forte -> raise pour value
+            ActionType recommended = ActionType.RAISE;
+            builder.recommended(recommended);
+
+            if (played == ActionType.RAISE || played == ActionType.ALL_IN) {
+                builder.score(100)
+                       .reasoning("Équité " + eqStr + " - RAISE pour value. "
+                           + "Avec une main aussi forte, maximiser la valeur est optimal. Bien joué!");
+            } else if (played == ActionType.CALL) {
+                builder.score(65)
+                       .reasoning("Équité " + eqStr + " - un RAISE pour value était meilleur qu'un simple CALL. "
+                           + "Vous avez laissé de l'argent sur la table. "
+                           + "La cote du pot (" + beStr + ") est largement en votre faveur (EV du call : " + evStr + ").");
+            } else {
+                // FOLD avec 65%+ d'equity...
+                builder.score(5)
+                       .reasoning("Équité " + eqStr + " - FOLD avec une main forte est une erreur majeure. "
+                           + "La cote du pot demandait seulement " + beStr + " d'équité pour être profitable. "
+                           + "EV perdue : " + evStr + ".");
+            }
+        } else if (equity >= breakEven) {
+            // Equity suffisante pour call
+            ActionType recommended = ActionType.CALL;
+            builder.recommended(recommended);
+
+            if (played == ActionType.CALL) {
+                builder.score(100)
+                       .reasoning("Équité " + eqStr + " vs cote requise " + beStr
+                           + " - CALL correct et profitable (EV : " + evStr + ").");
+            } else if (played == ActionType.RAISE) {
+                // Raise avec equity moyenne - parfois OK
+                builder.score(70)
+                       .reasoning("Équité " + eqStr + " — le CALL suffisait (EV : " + evStr + "). "
+                           + "Le RAISE augmente la variance sans avantage clair, "
+                           + "sauf si vous avez un read spécifique sur l'adversaire.");
+            } else {
+                // FOLD alors que le call était profitable
+                builder.score(20)
+                       .reasoning("Équité " + eqStr + " vs cote requise " + beStr
+                           + " - le CALL était profitable (EV : " + evStr + "). "
+                           + "Le FOLD ici fait perdre de la valeur attendue sur le long terme.");
+            }
+        } else {
+            // Equity insuffisante -> fold correct
+            ActionType recommended = ActionType.FOLD;
+            builder.recommended(recommended);
+
+            if (played == ActionType.FOLD) {
+                builder.score(100)
+                       .reasoning("Équité " + eqStr + " vs cote requise " + beStr
+                           + " - FOLD correct. Le call aurait une EV négative (" + evStr + ").");
+            } else if (played == ActionType.CALL) {
+                builder.score(30)
+                       .reasoning("Équité " + eqStr + " vs cote requise " + beStr
+                           + " - le CALL n'est pas profitable ici (EV : " + evStr + "). "
+                           + "Même si c'est tentant, le FOLD préserve vos jetons pour de meilleurs spots.");
+            } else {
+                // RAISE en bluff - possible mais risqué
+                builder.score(25)
+                       .reasoning("Équité " + eqStr + " - RAISE en bluff. "
+                           + "Peut fonctionner si l'adversaire fold souvent, "
+                           + "mais avec cette equity, le risque dépasse le gain attendu.");
+            }
+        }
+
+        return builder.build();
+    }
+
+    /**
+     * Analyse quand personne n'a misé (cad check ou bet possible)
+     */
+    private ActionAdvice analyseNobet(ActionAdvice.Builder builder,
+                                       ActionType played, int playedAmount,
+                                       double equity, int pot,
+                                       Player hero, BettingRound round) {
+        String eqStr = String.format("%.0f%%", equity * 100);
+
+        if (equity >= VALUE_THRESHOLD) {
+            // Main forte → bet pour value
+            builder.recommended(ActionType.BET);
+
+            if (played == ActionType.BET || played == ActionType.RAISE) {
+                builder.score(100)
+                       .reasoning("Équité " + eqStr + " - BET pour value, bien joué. "
+                           + "Avec cette force de main, miser extrait de la valeur des mains plus faibles.");
+            } else {
+                builder.score(40)
+                       .reasoning("Équité " + eqStr + " - un BET pour value était recommandé. "
+                           + "Le CHECK laisse l'adversaire voir la carte suivante gratuitement "
+                           + "et vous empêche de construire le pot avec votre main forte.");
+            }
+        } else if (equity >= MEDIUM_THRESHOLD) {
+            // Main moyenne -> check est raisonnable (pot control)
+            builder.recommended(ActionType.CHECK);
+
+            if (played == ActionType.CHECK) {
+                builder.score(90)
+                       .reasoning("Équité " + eqStr + " - CHECK pour contrôler la taille du pot. "
+                           + "Avec une main moyenne, éviter de gonfler le pot est prudent.");
+            } else if (played == ActionType.BET) {
+                builder.score(70)
+                       .reasoning("Équité " + eqStr + " - le BET est agressif mais défendable. "
+                           + "Un CHECK aurait mieux contrôlé le pot avec une main de force moyenne. "
+                           + "Le risque est de se faire relancer et devoir abandonner.");
+            } else {
+                builder.score(100)
+                       .reasoning("Équité " + eqStr + " - action acceptable.");
+            }
+        } else {
+            // Main faible -> check, pas de bluff recommandé par défaut
+            builder.recommended(ActionType.CHECK);
+
+            if (played == ActionType.CHECK) {
+                builder.score(100)
+                       .reasoning("Équité " + eqStr + " - CHECK correct avec une main faible. "
+                           + "Pas de raison de miser sans équité suffisante.");
+            } else if (played == ActionType.BET) {
+                // Bluff
+                builder.score(50)
+                       .reasoning("Équité " + eqStr + " - bluff. "
+                           + "Peut fonctionner occasionnellement, mais avec cette main, "
+                           + "vous ne pouvez pas supporter un call ou un raise. "
+                           + "Bluffer est acceptable si c'est fait avec modération et sur les bons boards.");
+            } else {
+                builder.score(90)
+                       .reasoning("Équité " + eqStr + " - action correcte.");
+            }
+        }
+
+        return builder.build();
+    }
+    
     //HELPERS
     
     
