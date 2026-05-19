@@ -103,6 +103,17 @@ public class MenuController {
     }
 
     @FXML
+    private void onReplay() {
+        if (availableHands == null || availableHands.isEmpty()) return;
+        int comboIdx = replayCombo.getSelectionModel().getSelectedIndex();
+        int realIdx = availableHands.size() - 1 - comboIdx;
+        if (realIdx >= 0 && realIdx < availableHands.size()) {
+            SessionData.setSelectedHand(availableHands.get(realIdx));
+            MainController.goToReplay();
+        }
+    }
+
+    @FXML
     private void onLeakAnalyzer() {
         MainController.goToAnalysis();
     }
