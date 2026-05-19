@@ -96,7 +96,7 @@ public final class BotProfile {
         }
         /** Paramètres Loose standard. */
         public static PostflopParams lag() {
-            return new PostflopParams(4.0, 0.80, 0.25, 0.35, 2.2, 0.65);
+        	return new PostflopParams(3.0, 0.60, 0.15, 0.40, 2.2, 0.55);
         }
     }
     
