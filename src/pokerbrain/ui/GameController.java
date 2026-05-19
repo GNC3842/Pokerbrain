@@ -576,11 +576,11 @@ public class GameController {
 
     private String formatAction(Action action) {
         return switch (action.getType()) {
-            case FOLD   -> "Se couche";
-            case CHECK  -> "Parole";
-            case CALL   -> "Suit (" + action.getAmount() + " j.)";
-            case BET    -> "Mise " + action.getAmount() + " j.";
-            case RAISE  -> "Relance " + action.getAmount() + " j.";
+            case FOLD   -> "Fold";
+            case CHECK  -> "Check";
+            case CALL   -> "Call (" + action.getAmount() + " j.)";
+            case BET    -> "Bet " + action.getAmount() + " j.";
+            case RAISE  -> "Raise " + action.getAmount() + " j.";
             case ALL_IN -> "All-in (" + action.getAmount() + " j.)";
         };
     }

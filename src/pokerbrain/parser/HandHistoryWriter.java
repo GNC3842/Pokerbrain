@@ -85,7 +85,7 @@ public final class HandHistoryWriter{
         if(joueur.getPosition() != null){
           build.append("Position ").append(joueur.getPosition().name());
         } else {
-          build.append("Position").append("BTN");
+          build.append("Position ").append("BTN");
         }
         build.append('\n');
       }

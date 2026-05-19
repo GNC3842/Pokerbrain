@@ -1,6 +1,7 @@
 package pokerbrain.ui;
 
 import javafx.fxml.FXML;
+import java.util.Map;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -92,7 +93,15 @@ public class ReplayController {
         } catch (Exception e) {
             System.err.println("[Replay] Erreur analyse : " + e.getMessage());
         }
-
+        Map<String, Integer> winnings = h.getWinnings();
+        if (winnings != null && !winnings.isEmpty()) {
+            StringBuilder sb = new StringBuilder("Résultat : ");
+            for (Map.Entry<String, Integer> e : winnings.entrySet()) {
+                if (e.getValue() > 0)
+                    sb.append(e.getKey()).append(" gagne ").append(e.getValue()).append("  ");
+            }
+            adviceLabel.setText(sb.toString());
+        }
         showStep(0);
     }
 
