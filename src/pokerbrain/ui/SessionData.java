@@ -1,0 +1,53 @@
+package pokerbrain.ui;
+
+import pokerbrain.model.history.Hand;
+import pokerbrain.parser.HistoryManager;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+public final class SessionData {
+    private SessionData() {}
+
+    private static HistoryManager historyManager;
+
+    public static void initHistory() {
+        if (historyManager == null) {
+            historyManager = new HistoryManager();
+            System.out.println("[SessionData] Historique : " + historyManager.getHistoryDir());
+        }
+    }
+
+    public static HistoryManager getHistoryManager() {
+        if (historyManager == null) initHistory();
+        return historyManager;
+    }
+
+    private static final List<Hand> sessionHands = new ArrayList<>();
+
+    public static void addHand(Hand hand) {
+        if (hand == null) return;
+        sessionHands.add(hand);
+        getHistoryManager().saveHand(hand);
+    }
+
+    public static List<Hand> getSessionHands() {
+        return Collections.unmodifiableList(sessionHands);
+    }
+
+    public static List<Hand> getAllHands() {
+        return getHistoryManager().loadAllHands();
+    }
+
+    public static int getTotalHandCount() {
+        return getHistoryManager().countAllHands();
+    }
+
+    private static Hand selectedHand = null;
+    public static Hand getSelectedHand(){ 
+        return selectedHand; 
+    }
+    public static void setSelectedHand(Hand h) { 
+        selectedHand = h; 
+    }
+}

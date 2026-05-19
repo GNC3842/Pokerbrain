@@ -3,8 +3,15 @@ package pokerbrain.ui;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.layout.VBox;
+import pokerbrain.analyser.leaks.Leak;
+import pokerbrain.analyser.leaks.LeakDetector;
+import pokerbrain.analyser.leaks.LeakSeverity;
+import pokerbrain.analyser.statistics.PlayerStatistics;
+import pokerbrain.analyser.statistics.PlayerStatisticsCalculator;
+import pokerbrain.model.history.Hand;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 
 // Affiche les statistiques de jeu d'un joueur (VPIP, PFR, …) et détecte les fuites de jeu.
 // Les données sont injectées par le moteur via loadStats() après analyse des mains.
@@ -21,6 +28,37 @@ public class StatisticsController {
     public void initialize() {
         winrateChart = new EquityChart();
         statsChartContainer.getChildren().add(winrateChart);
+        loadFromHistory();
+    }
+
+    private void loadFromHistory() {
+        List<Hand> hands = SessionData.getAllHands();
+
+        if (hands.isEmpty()) {
+            handsPlayedLabel.setText("0");
+            totalGainLabel.setText("Aucune main");
+            biggestHandLabel.setText("—");
+            addLeak(false, "Aucune donnée",
+                "Jouez une partie pour voir vos statistiques.\n"
+                + "Les mains sont sauvegardées dans " + SessionData.getHistoryManager().getHistoryDir());
+            return;
+        }
+
+        PlayerStatistics stats = PlayerStatisticsCalculator.calculate(hands, "hero", 10);
+        loadStats(stats.getVPIP(), stats.getPFR(), 0,
+                  stats.getWTSD(), stats.getWSD(), stats.getBBPer100(),
+                  stats.getHandsPlayed(), stats.getTotalWinnings());
+
+        clearLeaks();
+        List<Leak> leaks = LeakDetector.detect(stats);
+        for (Leak leak : leaks) {
+            addLeak(leak.getSeverity() != LeakSeverity.INFO,
+                    leak.getCategory() + " — " + leak.getSeverity().getLabel(),
+                    leak.getMessage() + "\n" + leak.getSuggestion());
+        }
+        if (leaks.isEmpty()) {
+            addLeak(false, "Aucun leak détecté", "Votre jeu semble solide !");
+        }
     }
 
     public void loadStats(double vpip, double pfr, double threeBet,
@@ -65,6 +103,6 @@ public class StatisticsController {
 
     public void clearLeaks() { leaksContainer.getChildren().clear(); }
 
-    @FXML private void onLoadData()    { /* TODO : charger depuis un fichier de main */ }
+    @FXML private void onLoadData()    { clearLeaks(); loadFromHistory();}
     @FXML private void onBackToMenu()  { MainController.goToMenu(); }
 }
