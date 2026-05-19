@@ -36,7 +36,20 @@ public final class SessionData {
     }
 
     public static List<Hand> getAllHands() {
-        return getHistoryManager().loadAllHands();
+        // Les mains en mémoire ont les GameStates, celles du disque non
+        // On fusionne : mains du disque + mains de la session pas encore sur disque
+        List<Hand> fromDisk = getHistoryManager().loadAllHands();
+        
+        // Remplacer les mains du disque par celles en mémoire (même handId) 
+        // car les versions mémoire ont les GameStates
+        java.util.Map<String, Hand> merged = new java.util.LinkedHashMap<>();
+        for (Hand h : fromDisk) {
+            merged.put(h.getHandId(), h);
+        }
+        for (Hand h : sessionHands) {
+            merged.put(h.getHandId(), h); // écrase la version disque
+        }
+        return new java.util.ArrayList<>(merged.values());
     }
 
     public static int getTotalHandCount() {

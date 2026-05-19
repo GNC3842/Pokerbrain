@@ -1,7 +1,6 @@
 package pokerbrain.ui;
 
 import javafx.fxml.FXML;
-import java.util.Map;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
@@ -12,6 +11,7 @@ import pokerbrain.model.core.Card;
 import pokerbrain.model.game.Action;
 import pokerbrain.model.history.GameState;
 import pokerbrain.model.history.Hand;
+import pokerbrain.model.game.BettingRound;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,6 +31,7 @@ public class ReplayController {
     private EquityChart    equityChart;
     private CardView[]     communityCards;
     private Label          adviceLabel;
+    private CardView heroCard1, heroCard2;
 
     private Hand               hand;
     private List<Action>       actions;
@@ -57,6 +58,16 @@ public class ReplayController {
             communityCards[i].showEmpty();
             replayCommunityRow.getChildren().add(communityCards[i]);
         }
+        
+        // Cartes du héro
+        HBox heroCardsBox = new HBox(6);
+        heroCard1 = new CardView();
+        heroCard2 = new CardView();
+        heroCardsBox.getChildren().addAll(
+            new Label("Vos cartes : ") {{ setStyle("-fx-text-fill: #a09070; -fx-font-size: 11px;"); }},
+            heroCard1, heroCard2
+        );
+        equityContainer.getChildren().add(0, heroCardsBox);
 
         Hand selected = SessionData.getSelectedHand();
         if (selected != null) {
@@ -72,6 +83,17 @@ public class ReplayController {
         this.actions = h.getActions();
         this.states  = h.getGameStates();
         this.currentStep = 0;
+        
+        // Afficher les cartes du héro depuis les initialStates
+        if (h.getHeroId() != null && h.getInitialStates() != null) {
+            for (pokerbrain.model.history.PlayerState ps : h.getInitialStates()) {
+                if (ps.getId().equals(h.getHeroId()) && ps.getHoleCards().size() == 2) {
+                    heroCard1.showCard(ps.getHoleCards().get(0));
+                    heroCard2.showCard(ps.getHoleCards().get(1));
+                    break;
+                }
+            }
+        }
 
         timeline.clear();
         for (Action a : actions) {
@@ -116,15 +138,31 @@ public class ReplayController {
             : action.getType().toString();
         stepActionLabel.setText(action.getPlayer().getName() + " : " + actionStr);
 
+        // Board : depuis GameState si disponible, sinon depuis Hand.getBoard() + round
         if (index < states.size()) {
             GameState gs = states.get(index);
             stepPotLabel.setText(String.format("Pot : %d", gs.getTotalPot()));
-
             List<Card> board = gs.getBoard();
             for (int i = 0; i < 5; i++) {
                 if (board != null && i < board.size()) communityCards[i].showCard(board.get(i));
                 else communityCards[i].showEmpty();
             }
+        } else {
+            // Fallback : pas de GameState (main chargée depuis le disque)
+            // Montrer le board selon le round de l'action courante
+            List<Card> fullBoard = hand.getBoard();
+            BettingRound round = action.getRound();
+            int cardsToShow = 0;
+            if (round == BettingRound.FLOP) cardsToShow = 3;
+            else if (round == BettingRound.TURN) cardsToShow = 4;
+            else if (round == BettingRound.RIVER) cardsToShow = 5;
+            for (int i = 0; i < 5; i++) {
+                if (fullBoard != null && i < cardsToShow && i < fullBoard.size())
+                    communityCards[i].showCard(fullBoard.get(i));
+                else
+                    communityCards[i].showEmpty();
+            }
+            stepPotLabel.setText("Pot : -");
         }
 
         stepCounterLabel.setText("Étape " + (index + 1) + " / " + actions.size());
