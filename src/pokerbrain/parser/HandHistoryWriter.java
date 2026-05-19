@@ -61,10 +61,10 @@ public final class HandHistoryWriter{
     build.append("HEADER\n");
     build.append("HandId: ").append(hand.getHandId()).append('\n');
     if( hand.getDate() != null){
-      build.append("Date:").append(hand.getDate().toString()).append('\n');
+      build.append("Date: ").append(hand.getDate().toString()).append('\n');
     }
     if (hand.getTableName() != null){
-      build.append("TableName: ").append(hand.getTableName()).append('\n');
+      build.append("Table: ").append(hand.getTableName()).append('\n');
     }
     build.append("SmallBlind: ").append(hand.getSmallBlind()).append('\n');
     build.append("BigBlind: ").append(hand.getBigBlind()).append('\n');
@@ -83,7 +83,7 @@ public final class HandHistoryWriter{
         build.append("Seat ").append(joueur.getSeat()).append(" - ");
         build.append("Stack ").append(joueur.getStack()).append(" - ");
         if(joueur.getPosition() != null){
-          build.append("Position").append(joueur.getPosition().name());
+          build.append("Position ").append(joueur.getPosition().name());
         } else {
           build.append("Position").append("BTN");
         }

@@ -1,5 +1,4 @@
 package pokerbrain.ui;
-
 import javafx.animation.PauseTransition;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -449,7 +448,7 @@ public class GameController {
         if (type == ActionType.BET || type == ActionType.RAISE || type == ActionType.ALL_IN)
             return game.applyAction(type, amount);
         return game.applyAction(type);
-    */}
+    }*/
     private Action applyToGame(ActionType type, int amount){
         Action result;
         if (type == ActionType.BET || type == ActionType.RAISE || type == ActionType.ALL_IN){
@@ -526,10 +525,10 @@ public class GameController {
                 MonteCarloEngine engine = AppContext.getEngine();
                 MonteCarloEngine.EquityResult result = engine.calculateEquity(hole, board, 3000, Math.max(1, nbOpp));
                 double eq = result.equity();
-                javafx.application.Platform.runLater(() ->
-                equityLabel.setText(String.format("Équité : %.1f%%", eq))
-            );
-        } catch (Exception e) { /* silencieux */ }
+                javafx.application.Platform.runLater(() -> {
+                	equityLabel.setText(String.format("Équité : %.1f%%", eq));
+                });
+            }catch (Exception e) { /* silencieux */ }
         }).start();
     }
 

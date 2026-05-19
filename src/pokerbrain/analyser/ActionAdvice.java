@@ -96,7 +96,7 @@ public class ActionAdvice {
     	return this.potOdds;
     }
     
-    public String getReasonning() {
+    public String getReasoning() {
     	return this.reasoning;
     }
     
