@@ -3,6 +3,7 @@ package pokerbrain.parser;
 import pokerbrain.model.core.Card;
 import pokerbrain.model.game.*;
 import pokerbrain.model.history.Hand;
+import pokerbrain.model.history.PlayerState;
 
 import java.io.*;
 import java.nio.file.*;
@@ -61,6 +62,13 @@ public final class HandHistoryParser{
     builder.players(players);
 
     parseHoleCards(sections.getOrDefault("HOLECARDS", Collections.emptyList()), byId);
+    
+    // Créer les initialStates APRÈS parseHoleCards pour capturer les cartes
+    List<PlayerState> initStates = new ArrayList<>();
+    for (Player p : players) {
+        initStates.add(PlayerState.of(p));
+    }
+    builder.initialStates(initStates);
 
     // Board accumulé au fil des rounds
     List<Card> board = new ArrayList<>();

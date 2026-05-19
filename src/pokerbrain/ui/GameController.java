@@ -562,7 +562,9 @@ public class GameController {
     }
 
     private void updatePotLabel() {
-        updatePot(game.getTotalPot() / (double) bigBlind);
+        int pot = game.getTotalPot();
+        potView.setPot(pot);
+        potLabel.setText(pot + " jetons");
     }
 
     private void logAction(Action action) {

@@ -12,6 +12,7 @@ import pokerbrain.model.game.Action;
 import pokerbrain.model.history.GameState;
 import pokerbrain.model.history.Hand;
 import pokerbrain.model.game.BettingRound;
+import pokerbrain.model.history.PlayerState;
 
 import java.util.HashMap;
 import java.util.List;
@@ -115,15 +116,41 @@ public class ReplayController {
         } catch (Exception e) {
             System.err.println("[Replay] Erreur analyse : " + e.getMessage());
         }
+     // Afficher le résultat du showdown : gagnant + cartes des joueurs
         Map<String, Integer> winnings = h.getWinnings();
+        StringBuilder resultText = new StringBuilder();
+
         if (winnings != null && !winnings.isEmpty()) {
-            StringBuilder sb = new StringBuilder("Résultat : ");
+            resultText.append("🏆 Résultat :\n");
             for (Map.Entry<String, Integer> e : winnings.entrySet()) {
                 if (e.getValue() > 0)
-                    sb.append(e.getKey()).append(" gagne ").append(e.getValue()).append("  ");
+                    resultText.append("  ").append(e.getKey()).append(" gagne ").append(e.getValue()).append(" jetons\n");
             }
-            adviceLabel.setText(sb.toString());
         }
+
+        // Cartes des joueurs au showdown (ceux qui ne se sont pas couchés)
+        if (h.getInitialStates() != null) {
+            resultText.append("\n🃏 Cartes révélées :\n");
+            // Trouver les joueurs qui ont atteint le showdown (non foldés)
+            java.util.Set<String> foldedIds = new java.util.HashSet<>();
+            for (Action a : actions) {
+                if (a.getType() == pokerbrain.model.game.ActionType.FOLD)
+                    foldedIds.add(a.getPlayer().getId());
+            }
+            for (PlayerState ps : h.getInitialStates()) {
+                if (!foldedIds.contains(ps.getId()) && ps.getHoleCards().size() == 2) {
+                    String marker = (winnings != null && winnings.getOrDefault(ps.getId(), 0) > 0) ? " ★" : "";
+                    resultText.append("  ").append(ps.getName()).append(" : ")
+                        .append(ps.getHoleCards().get(0)).append(" ")
+                        .append(ps.getHoleCards().get(1))
+                        .append(marker).append("\n");
+                }
+            }
+        }
+
+        adviceLabel.setText(resultText.toString());
+        adviceLabel.setStyle("-fx-text-fill: #d4af37; -fx-font-size: 13px; -fx-padding: 8;"
+            + "-fx-background-color: #0f3020; -fx-background-radius: 6px;");
         showStep(0);
     }
 
