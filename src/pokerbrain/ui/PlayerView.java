@@ -44,7 +44,7 @@ public class PlayerView extends VBox {
         nameLabel.setText(player.getName());
         if (player.getPosition() != null)
             positionLabel.setText(player.getPosition().name());
-        stackLabel.setText(player.getStack() + " j.");
+        stackLabel.setText(player.getStack() + " jetons.");
         setBet(player.getCurrentBet());
 
         var cards = player.getHoleCards();
@@ -54,8 +54,8 @@ public class PlayerView extends VBox {
 
     public void setName(String name)         { nameLabel.setText(name); }
     public void setPosition(String position) { positionLabel.setText(position); }
-    public void setStack(double stack)       { stackLabel.setText(String.format("%.1f BB", stack)); }
-    public void setBet(double bet)           { betLabel.setText(bet > 0 ? String.format("+ %.1f BB", bet) : ""); }
+    public void setStack(double stack)       { stackLabel.setText((int) stack + " jetons"); }
+    public void setBet(double bet)           { betLabel.setText(bet > 0 ? "+ " + (int) bet + " jetons" : "");  }
     public void showCards(Card c1, Card c2)  { card1.showCard(c1); card2.showCard(c2); }
     public void hideCards()                  { card1.showBack(); card2.showBack(); }
 

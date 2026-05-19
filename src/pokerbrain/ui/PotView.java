@@ -8,7 +8,7 @@ import javafx.scene.layout.VBox;
 // Affiche le pot principal et les éventuels side pots (joueurs all-in).
 public class PotView extends VBox {
 
-    private final Label mainPotLabel = new Label("POT : 0 BB");
+    private final Label mainPotLabel = new Label("POT : 0 ");
     private final HBox  sidePotsBox  = new HBox(10);
 
     public PotView() {
@@ -20,12 +20,12 @@ public class PotView extends VBox {
     }
 
     public void setPot(double amount) {
-        mainPotLabel.setText(String.format("POT : %.1f BB", amount));
+    	mainPotLabel.setText("POT : " + (int) amount + " jetons");
     }
 
     // Side pot créé quand un joueur est all-in
     public void addSidePot(double amount, String players) {
-        Label label = new Label(String.format("Side : %.1f BB (%s)", amount, players));
+    	Label label = new Label("Side : " + (int) amount + " jetons (" + players + ")");
         label.setStyle("-fx-text-fill: #a09070; -fx-font-size: 11px;");
         sidePotsBox.getChildren().add(label);
     }

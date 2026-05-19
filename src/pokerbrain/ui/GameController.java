@@ -90,8 +90,7 @@ public class GameController {
 
         raiseSlider.valueProperty().addListener((obs, oldVal, newVal) -> {
             int v = (int) Math.round(newVal.doubleValue());
-            raiseAmountLabel.setText(v <= 0 ? "0" : v + " j.");
-        });
+            raiseAmountLabel.setText(v <= 0 ? "0" : v + " jetons");});
 
         disableActions();
     }
@@ -295,7 +294,7 @@ public class GameController {
             for (Map.Entry<Player, Integer> e : winnings.entrySet()) {
                 if (e.getValue() > 0)
                     addActionToHistory("SHOWDOWN", e.getKey().getName(),
-                        "Gagne " + e.getValue() + " j.");
+                        "Gagne " + e.getValue() + " jetons.");
             }
             refreshAllPlayerViews(true);
         } catch (Exception e) {
@@ -473,7 +472,7 @@ public class GameController {
         checkCallButton.setDisable(!canCheck && !canCall);
         if (canCall) {
             int callAmt = game.getCallAmount();
-            checkCallButton.setText(String.format("Suivre (%d j.)", callAmt));
+            checkCallButton.setText(String.format("Call (%d jetons.)", callAmt));
         } else {
             checkCallButton.setText("Check");
         }
@@ -482,7 +481,7 @@ public class GameController {
         boolean canBet   = valid.contains(ActionType.BET);
         boolean canAllIn = valid.contains(ActionType.ALL_IN);
         raiseButton.setDisable(!canRaise && !canBet && !canAllIn);
-        raiseButton.setText(canRaise ? "Relancer" : canBet ? "Miser" : "All-in");
+        raiseButton.setText(canRaise ? "Raise" : canBet ? "Bet" : "All-in");
 
         if (canRaise || canBet) {
             Player heroPlayer = game.getPlayers().get(heroPlayerIndex);
@@ -596,7 +595,7 @@ public class GameController {
 
     public void updatePot(double amountInBB) {
         potView.setPot(amountInBB);
-        potLabel.setText(String.format("%.1f BB", amountInBB));
+        potLabel.setText(String.format("%.1f jetons", amountInBB));
     }
 
     public void configureRaiseSlider(double heroStack) {
@@ -604,7 +603,7 @@ public class GameController {
         raiseSlider.setMin(0);
         raiseSlider.setMax(heroStack > 0 ? heroStack : 1);
         raiseSlider.setValue(0);
-        raiseAmountLabel.setText("0 j.");
+        raiseAmountLabel.setText("0");
     }
 
     public void setRound(String round)                               { roundLabel.setText(round); }
