@@ -1,4 +1,4 @@
-package test.java.pokerbrain;
+package pokerbrain;
 
 import org.junit.jupiter.api.Test;
 import pokerbrain.model.core.*;

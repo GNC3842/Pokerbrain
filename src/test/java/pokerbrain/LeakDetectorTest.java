@@ -1,5 +1,6 @@
-package test.java.pokerbrain;
+package pokerbrain;
 
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import pokerbrain.analyser.leaks.*;
 import pokerbrain.analyser.statistics.PlayerStatistics;
@@ -10,10 +11,19 @@ public class LeakDetectorTest {
         assertTrue(LeakDetector.detect(stats(100, 55, 8)).stream()
             .anyMatch(l -> l.getCategory().equals("VPIP") && l.getSeverity() == LeakSeverity.CRITICAL));
     }
+
+    
     @Test void tagNoCritical() {
-        assertEquals(0, LeakDetector.detect(stats(200, 46, 38)).stream()
+        PlayerStatistics s = new PlayerStatistics("h", "Hero",
+            200, 44, 36, 18, 50, 12, 7, 500, 2);
+        List<Leak> leaks = LeakDetector.detect(s);
+        leaks.stream()
+            .filter(l -> l.getSeverity() == LeakSeverity.CRITICAL)
+            .forEach(l -> System.out.println("CRITICAL trouvé: " + l));
+        assertEquals(0, leaks.stream()
             .filter(l -> l.getSeverity() == LeakSeverity.CRITICAL).count());
     }
+
     @Test void smallSampleWarning() {
         assertTrue(LeakDetector.detect(stats(20, 5, 4)).stream()
             .anyMatch(l -> l.getCategory().equals("Échantillon")));

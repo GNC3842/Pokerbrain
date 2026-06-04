@@ -9,7 +9,7 @@ public class DeckTest {
     @Test void fiftyTwoUnique() {
         Deck d = new Deck();
         HashSet<Card> s = new HashSet<>();
-        for (int i = 0; i < 52; i++) s.add(d.draw());
+        for (int i = 0; i < 52; i++) s.add(d.deal());
         assertEquals(52, s.size());
     }
 }
