@@ -69,7 +69,7 @@ public class LeakDetector {
             leaks.add(new Leak(LeakSeverity.WARNING, "PFR", pfr, PFR_MIN,
                  "PFR un peu bas - pas assez d'initiative preflop",
                  "Relancez plus souvent, surtout en position (BTN, CO)."));
-        } else if (pfr > 30) {
+        } else if (pfr > PFR_MAX) {
             leaks.add(new Leak(LeakSeverity.WARNING, "PFR", pfr, PFR_MAX,
                  "PFR trop élevé - trop de raises preflop",
                  "Resserrez vos ranges d'open en early position."));
@@ -94,7 +94,7 @@ public class LeakDetector {
             leaks.add(new Leak(LeakSeverity.WARNING, "AF", af, AF_MIN,
                  "Aggression Factor un peu bas",
                  "Augmentez vos c-bets et value-bets."));
-        } else if (af > 5.0) {
+        } else if (af > AF_MAX) {
             leaks.add(new Leak(LeakSeverity.WARNING, "AF", af, AF_MAX,
                  "Aggression Factor trop élevé - trop de bluffs",
                  "Réduisez la fréquence de bluff, surtout sur river."));
