@@ -14,6 +14,7 @@ public class MainController {
             return MainApp.switchScene("fxml/GameScreen.fxml");
         } catch (IOException e) {
             System.err.println("Erreur navigation : " + e.getMessage());
+            e.printStackTrace();
             return null;
         }
     }
