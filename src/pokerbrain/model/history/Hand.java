@@ -145,11 +145,13 @@ public final class Hand{
          return new Hand(this);
       }
       
-      //Getters pour log
+      public int getSmallBlind() { return this.smallBlind; }
+      public int getBigBlind()   { return this.bigBlind; }
+
       public List<Action> getActions(){
     	  return this.actions;
       }
-      
+
       public List<GameState> getGameStates(){
     	  return this.gameStates;
       }

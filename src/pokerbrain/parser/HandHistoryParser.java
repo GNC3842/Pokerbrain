@@ -2,6 +2,7 @@ package pokerbrain.parser;
 
 import pokerbrain.model.core.Card;
 import pokerbrain.model.game.*;
+import pokerbrain.model.history.GameState;
 import pokerbrain.model.history.Hand;
 import pokerbrain.model.history.PlayerState;
 
@@ -89,8 +90,40 @@ public final class HandHistoryParser{
     builder.board(board);
 
     parseShowdown(sections.getOrDefault("SHOWDOWN", Collections.emptyList()), builder);
+    reconstructGameStates(builder.getActions(), board, builder.getSmallBlind(), builder.getBigBlind(), builder);
     System.out.println("[Parser] Fin du parsing du bloc");
     return builder.build();
+  }
+
+  // Reconstruit un GameState par action en accumulant les mises depuis les blindes.
+  // Fournit au minimum le pot courant et le board, ce qui suffit au ReplayController.
+  private static void reconstructGameStates(List<Action> actions, List<Card> fullBoard,
+                                             int sb, int bb, Hand.Builder builder) {
+    int pot = sb + bb;
+    for (Action action : actions) {
+      if (action.getType().involvesMoney()) {
+        pot += action.getAmount();
+      }
+      List<Card> boardAtRound = boardForRound(fullBoard, action.getRound());
+      GameState gs = new GameState.Builder()
+          .round(action.getRound())
+          .board(boardAtRound)
+          .totalPot(pot)
+          .lastAction(action)
+          .build();
+      builder.addGameState(gs);
+    }
+  }
+
+  private static List<Card> boardForRound(List<Card> fullBoard, BettingRound round) {
+    if (fullBoard == null || fullBoard.isEmpty()) return Collections.emptyList();
+    int cards = switch (round) {
+      case PREFLOP -> 0;
+      case FLOP    -> 3;
+      case TURN    -> 4;
+      case RIVER   -> 5;
+    };
+    return new ArrayList<>(fullBoard.subList(0, Math.min(cards, fullBoard.size())));
   }
 
   //Méthode de découpage en sections (pour récupérer les sections du jeu)
