@@ -18,20 +18,6 @@ public class FastHandEvaluator {
     private final int[] comboBuf  = new int[5]; // combo courante de 5 indices
     private final int[] sortBuf = new int[7]; //buffer non flush
     
- // Patterns de suites sur 13 bits de rankBitmask (bit 0 = TWO, bit 12 = ACE)
-    private static final int[] STRAIGHT_MASKS = {
-        0b1_1111_0000_0000, // A-K-Q-J-T
-        0b0_1111_1000_0000, // K-Q-J-T-9
-        0b0_0111_1100_0000, // Q-J-T-9-8
-        0b0_0011_1110_0000, // J-T-9-8-7
-        0b0_0001_1111_0000, // T-9-8-7-6
-        0b0_0000_1111_1000, // 9-8-7-6-5
-        0b0_0000_0111_1100, // 8-7-6-5-4
-        0b0_0000_0011_1110, // 7-6-5-4-3
-        0b0_0000_0001_1111, // 6-5-4-3-2
-        0b1_0000_0000_1111, // A-5-4-3-2 
-    };
-    
     //Constructeur
     public FastHandEvaluator(int[] lookupTable) {
         if (lookupTable == null || lookupTable.length != LookupTableGenerator.TABLE_SIZE)
@@ -195,11 +181,4 @@ public class FastHandEvaluator {
         buf[0]=a; buf[1]=b; buf[2]=c; buf[3]=d; buf[4]=e;
     }
     
-    //Detection des suites
-    public static int detectStraight(int rankBitmask) {
-        for (int i = 0; i < STRAIGHT_MASKS.length; i++) {
-            if ((rankBitmask & STRAIGHT_MASKS[i]) == STRAIGHT_MASKS[i]) return i;
-        }
-        return -1;
-    }
 }

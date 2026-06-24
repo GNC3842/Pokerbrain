@@ -238,44 +238,6 @@ public class GameController {
         }
     }
 
-    /*private void handleShowdown() {
-    	Map<Player, Integer> winnings = game.showdown();
-        try {
-            // Révéler les cartes de tous les joueurs encore en jeu
-            String heroId = game.getPlayers().get(heroPlayerIndex).getId();
-            for (Player p : game.getPlayers()) {
-                if (!p.isFolded() && !p.isOut()) {
-                    PlayerView view = playerViews.get(p.getId());
-                    if (view != null) view.setPlayer(p); // affiche les vraies cartes
-                }
-            }
-            // Afficher les gains dans l'historique
-            for (Map.Entry<Player, Integer> e : winnings.entrySet()) {
-                if (e.getValue() > 0)
-                    addActionToHistory("SHOWDOWN", e.getKey().getName(),
-                        "Gagne " + e.getValue() + " j.");
-            }
-            refreshAllPlayerViews(true);
-        } catch (Exception e) {
-            System.err.println("Erreur showdown : " + e.getMessage());
-        }
-        // Popup résultat pour showdown
-        Player heroPlayer = game.getPlayers().get(heroPlayerIndex);
-        int heroWin = winnings.getOrDefault(heroPlayer, 0);
-        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-            heroWin > 0 
-                ? javafx.scene.control.Alert.AlertType.INFORMATION
-                : javafx.scene.control.Alert.AlertType.WARNING
-        );
-        alert.setTitle("Fin de la main");
-        alert.setHeaderText(heroWin > 0 ? "Vous avez gagné !" : "Vous avez perdu");
-        alert.setContentText(heroWin > 0 
-            ? "Gains : +" + heroWin + " jetons"
-            : "Vous n'avez rien gagné cette main.");
-        alert.getDialogPane().setStyle("-fx-background-color: #1a4a2e;");
-        alert.showAndWait();
-        handleHandOver();
-    }*/
     private void handleShowdown() {
         Map<Player, Integer> winnings = new HashMap<>();
         try {
@@ -442,12 +404,6 @@ public class GameController {
         }
     }
 
-    // Applique une action au moteur : FOLD/CHECK/CALL n'ont pas de montant.
-    /*private Action applyToGame(ActionType type, int amount) {
-        if (type == ActionType.BET || type == ActionType.RAISE || type == ActionType.ALL_IN)
-            return game.applyAction(type, amount);
-        return game.applyAction(type);
-    }*/
     private Action applyToGame(ActionType type, int amount){
         Action result;
         if (type == ActionType.BET || type == ActionType.RAISE || type == ActionType.ALL_IN){

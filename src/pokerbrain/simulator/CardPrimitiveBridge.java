@@ -39,10 +39,7 @@ public class CardPrimitiveBridge {
     static final int SUIT_SPADES   = 0x1000; // bit 12
     
     //Définition des positions des masques
-    static final int MASK_PRIME      = 0x000000FF; // bits 7-0
-    static final int MASK_RANK_INDEX = 0x00000F00; // bits 11-8
     static final int MASK_SUIT       = 0x0000F000; // bits 15-12
-    static final int MASK_RANK_BIT   = 0xFFFF0000; // bits 31-16
     
     static final int SHIFT_RANK_INDEX = 8;
     static final int SHIFT_SUIT       = 12;
@@ -70,26 +67,6 @@ public class CardPrimitiveBridge {
             encoded[i] = encode(cartes[i]);
         }
         return encoded;
-    }
-    
-    //Extraire le nombre premier du rang 
-    public static int prime(int encodedCard) {
-        return encodedCard & MASK_PRIME;
-    }
-    
-    //Extraire l'index du rang
-    public static int rankIndex(int encodedCard) {
-        return (encodedCard & MASK_RANK_INDEX) >> SHIFT_RANK_INDEX;
-    }
-    
-    //Extrait le bitmask de couleur (bits 15-12)
-    public static int suitBit(int encodedCard) {
-        return encodedCard & MASK_SUIT;
-    }
-    
-    //Extrait le bitmask de rang (bits 31-16)
-    public static int rankBit(int encodedCard) {
-        return (encodedCard & MASK_RANK_BIT) >> SHIFT_RANK_BIT;
     }
     
     //LISTE DES HELPERS
