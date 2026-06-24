@@ -256,7 +256,7 @@ public class GameController {
             for (Map.Entry<Player, Integer> e : winnings.entrySet()) {
                 if (e.getValue() > 0)
                     addActionToHistory("SHOWDOWN", e.getKey().getName(),
-                        "Gagne " + e.getValue() + " jetons.");
+                        "Wins " + e.getValue() + " chips.");
             }
             refreshAllPlayerViews(true);
         } catch (Exception e) {
@@ -273,11 +273,11 @@ public class GameController {
                     ? javafx.scene.control.Alert.AlertType.INFORMATION
                     : javafx.scene.control.Alert.AlertType.WARNING
             );
-            alert.setTitle("Fin de la main");
-            alert.setHeaderText(heroWin > 0 ? "Vous avez gagné !" : "Vous avez perdu");
+            alert.setTitle("End of hand");
+            alert.setHeaderText(heroWin > 0 ? "You win!" : "You lose");
             alert.setContentText(heroWin > 0
-                ? "Gains : +" + heroWin + " jetons"
-                : "Vous n'avez rien gagné cette main.");
+                ? "Winnings: +" + heroWin + " chips"
+                : "You did not win this hand.");
             alert.showAndWait();
             handleHandOver();
         });
@@ -297,9 +297,9 @@ public class GameController {
     	    if (activePlayers == 1) {
     	        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
     	            javafx.scene.control.Alert.AlertType.INFORMATION);
-    	        alert.setTitle("Fin de la main");
-    	        alert.setHeaderText("Vous remportez le pot !");
-    	        alert.setContentText("Tous les adversaires se sont couchés.");
+    	        alert.setTitle("End of hand");
+    	        alert.setHeaderText("You win the pot!");
+    	        alert.setContentText("All opponents folded.");
     	        alert.show(); // ← show() sans Wait, pas de blocage
     	    }
     	}
@@ -428,7 +428,7 @@ public class GameController {
         checkCallButton.setDisable(!canCheck && !canCall);
         if (canCall) {
             int callAmt = game.getCallAmount();
-            checkCallButton.setText(String.format("Call (%d jetons.)", callAmt));
+            checkCallButton.setText(String.format("Call (%d chips)", callAmt));
         } else {
             checkCallButton.setText("Check");
         }
@@ -481,7 +481,7 @@ public class GameController {
                 MonteCarloEngine.EquityResult result = engine.calculateEquity(hole, board, 3000, Math.max(1, nbOpp));
                 double eq = result.equity();
                 javafx.application.Platform.runLater(() -> {
-                	equityLabel.setText(String.format("Équité : %.1f%%", eq));
+                	equityLabel.setText(String.format("Equity: %.1f%%", eq));
                 });
             }catch (Exception e) { /* silencieux */ }
         }).start();
@@ -520,7 +520,7 @@ public class GameController {
     private void updatePotLabel() {
         int pot = game.getTotalPot();
         potView.setPot(pot);
-        potLabel.setText(pot + " jetons");
+        potLabel.setText(pot + " chips");
     }
 
     private void logAction(Action action) {
@@ -553,7 +553,7 @@ public class GameController {
 
     public void updatePot(double amountInBB) {
         potView.setPot(amountInBB);
-        potLabel.setText(String.format("%.1f jetons", amountInBB));
+        potLabel.setText(String.format("%.1f chips", amountInBB));
     }
 
     public void configureRaiseSlider(double heroStack) {
