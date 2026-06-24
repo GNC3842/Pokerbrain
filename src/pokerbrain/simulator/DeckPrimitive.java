@@ -1,6 +1,8 @@
 package pokerbrain.simulator;
 
 import pokerbrain.model.core.Card;
+import pokerbrain.model.core.Rank;
+import pokerbrain.model.core.Suit;
 import java.util.List;
 
 /*
@@ -20,10 +22,13 @@ public class DeckPrimitive {
 	
 	static {
 		ALL_ENCODED = new int[52];
-		Card[] cards = LookupTableGenerator.buildAllCards();
-		for (int i = 0; i < 52; i++) {
-            ALL_ENCODED[i] = CardPrimitiveBridge.encode(cards[i]);
-        }
+		Rank[] ranks = Rank.values();
+		Suit[] suits = Suit.values();
+		for (int r = 0; r < 13; r++) {
+			for (int s = 0; s < 4; s++) {
+				ALL_ENCODED[r * 4 + s] = CardPrimitiveBridge.encode(new Card(ranks[r], suits[s]));
+			}
+		}
 	}
 	
 	//Indices des cartes disponibles (non mortes), mélangé en place

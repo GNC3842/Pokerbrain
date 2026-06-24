@@ -47,8 +47,8 @@ public class HandAnalyser {
     private final RangeMap tagUtgRange;
     
     //CONSTRUCTEUR
-    public HandAnalyser(int[] lookupTable) {
-        this.engine = new MonteCarloEngine(lookupTable);
+    public HandAnalyser() {
+        this.engine = new MonteCarloEngine();
 
         // Charger les ranges TAG comme référence optimale
         // On récupère les ranges via BotProfileFactory pour ne pas dupliquer le code

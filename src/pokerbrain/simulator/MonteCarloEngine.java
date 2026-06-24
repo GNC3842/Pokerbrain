@@ -8,7 +8,7 @@ import java.util.concurrent.ThreadLocalRandom;
  * Moteur Monte-Carlo haute performance — zéro allocation dans la boucle chaude.
  *
  * USAGE (une instance par thread) :
- *   MonteCarloEngine engine = new MonteCarloEngine(lookupTable);
+ *   MonteCarloEngine engine = new MonteCarloEngine();
  *   EquityResult r = engine.calculateEquity(heroHole, board, 10_000);
  *
  * GARANTIES ZERO-ALLOCATION :
@@ -39,8 +39,8 @@ public final class MonteCarloEngine {
     private final int[] boardEnc = new int[5]; // encodages board connu
     private final int[] boardIdx = new int[5]; // indices board connu
 
-    public MonteCarloEngine(int[] lookupTable) {
-        this.evaluator = new FastHandEvaluator(lookupTable);
+    public MonteCarloEngine() {
+        this.evaluator = new FastHandEvaluator();
         this.deck = new DeckPrimitive();
     }
 

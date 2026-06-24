@@ -1,184 +1,85 @@
 package pokerbrain.simulator;
 
 /*
- * Evaluateur des mains sans allocations
- * 
- * -> une insatnce par thread: 
- * 				FastHandEvaluator eval = new FastHandEvaluator(table);
- *   			int value = eval.evaluate7(encodedCards, cardIndices);
- *   
+ * Evaluateur de mains sans allocations — CactusKev O(1).
+ *
+ * eval5() : lookup en 3 étapes (flush, unique5, primes)
+ * evaluate7() : 1 flush pass ou 21 combos non-flush
  */
 
 public class FastHandEvaluator {
-	
-	private final int[] table;
-	
-	// Buffers internes — alloués UNE FOIS à la construction, réutilisés
-    private final int[] flushBuf  = new int[7]; // indices des cartes flush
-    private final int[] comboBuf  = new int[5]; // combo courante de 5 indices
-    private final int[] sortBuf = new int[7]; //buffer non flush
-    
-    //Constructeur
-    public FastHandEvaluator(int[] lookupTable) {
-        if (lookupTable == null || lookupTable.length != LookupTableGenerator.TABLE_SIZE)
-            throw new IllegalArgumentException(
-                "Lookup table invalide : taille attendue " + LookupTableGenerator.TABLE_SIZE);
-        this.table = lookupTable;
-    }
-    
-    //Évalue la meilleure main de 5 parmi 7 cartes
+
+    private final int[] flushBuf = new int[7]; // positions flush dans enc[]
+    private final int[] comboBuf = new int[5]; // 5 positions pour combo non-flush
+
+    public FastHandEvaluator() {}
+
     public int evaluate7(int[] enc, int[] idx) {
         int flushSuit = detectFlushSuit(enc);
         if (flushSuit != 0) {
-        	return evaluateFlush7(enc, idx, flushSuit);
+            return evaluateFlush7(enc, flushSuit);
         } else {
-        	return evaluateNonFlush7(idx);
+            return evaluateNonFlush7(enc);
         }
     }
-    
-    //Detetction du flush
+
     private static int detectFlushSuit(int[] enc) {
-        int cC = 0; 
-        int cD = 0; 
-        int cH = 0;
-        int cS = 0;
+        int cC = 0, cD = 0, cH = 0, cS = 0;
         for (int i = 0; i < 7; i++) {
             int s = enc[i] & CardPrimitiveBridge.MASK_SUIT;
-            if(s == CardPrimitiveBridge.SUIT_CLUBS) {
-            	cC++;
-            }
-            else if (s == CardPrimitiveBridge.SUIT_DIAMONDS){
-            	cD++;
-            }
-            else if (s == CardPrimitiveBridge.SUIT_HEARTS){
-            	cH++;
-            }
-            else{
-            	cS++;
-            }
+            if      (s == CardPrimitiveBridge.SUIT_CLUBS)    cC++;
+            else if (s == CardPrimitiveBridge.SUIT_DIAMONDS) cD++;
+            else if (s == CardPrimitiveBridge.SUIT_HEARTS)   cH++;
+            else                                              cS++;
         }
-        if (cC >= 5) {
-        	return CardPrimitiveBridge.SUIT_CLUBS;
-        }
-        if (cD >= 5) {
-        	return CardPrimitiveBridge.SUIT_DIAMONDS;
-        }
-        if (cH >= 5) {
-        	return CardPrimitiveBridge.SUIT_HEARTS;
-        }
-        if (cS >= 5) {
-        	return CardPrimitiveBridge.SUIT_SPADES;
-        }
+        if (cC >= 5) return CardPrimitiveBridge.SUIT_CLUBS;
+        if (cD >= 5) return CardPrimitiveBridge.SUIT_DIAMONDS;
+        if (cH >= 5) return CardPrimitiveBridge.SUIT_HEARTS;
+        if (cS >= 5) return CardPrimitiveBridge.SUIT_SPADES;
         return 0;
     }
-    
-    private int evaluateFlush7(int[] enc, int[] idx, int flushSuit) {
+
+    private int evaluateFlush7(int[] enc, int flushSuit) {
         int n = 0;
         for (int i = 0; i < 7; i++) {
             if ((enc[i] & CardPrimitiveBridge.MASK_SUIT) == flushSuit) {
-                flushBuf[n++] = idx[i];
+                flushBuf[n++] = i;
             }
         }
-        // Tri insertion décroissant par rankIndex (idx/4 = rankIndex)
+        // Insertion sort descending by rank index (bits 8-11 of enc)
         for (int i = 1; i < n; i++) {
-            int key = flushBuf[i], keyR = key / 4, j = i - 1;
-            while (j >= 0 && flushBuf[j] / 4 < keyR) { flushBuf[j+1] = flushBuf[j]; j--; }
-            flushBuf[j+1] = key;
-        }
-        // Les 5 premiers sont les meilleurs rangs — les trier croissants pour l'index
-        int a = flushBuf[0], b = flushBuf[1], c = flushBuf[2],
-            d = flushBuf[3], e = flushBuf[4];
-        sort5InPlace(comboBuf, a, b, c, d, e);
-        return table[LookupTableGenerator.combinatorialIndex(
-            comboBuf[0], comboBuf[1], comboBuf[2], comboBuf[3], comboBuf[4])];
-    }
-    
-    private int evaluateNonFlush7(int[] idx) {
-        // 1. Copier les 7 indices dans le buffer temporaire
-        for (int i = 0; i < 7; i++) {
-            sortBuf[i] = idx[i];
-        }
-        
-        // 2. Trier les 7 cartes UNE SEULE FOIS (Tri par insertion, ultra-rapide pour N=7)
-        for (int i = 1; i < 7; i++) {
-            int key = sortBuf[i];
-            int j = i - 1;
-            while (j >= 0 && sortBuf[j] > key) { 
-                sortBuf[j+1] = sortBuf[j]; 
-                j--; 
+            int key = flushBuf[i], keyR = (enc[key] >> 8) & 0xf, j = i - 1;
+            while (j >= 0 && ((enc[flushBuf[j]] >> 8) & 0xf) < keyR) {
+                flushBuf[j + 1] = flushBuf[j]; j--;
             }
-            sortBuf[j+1] = key;
+            flushBuf[j + 1] = key;
         }
+        return eval5(enc, flushBuf[0], flushBuf[1], flushBuf[2], flushBuf[3], flushBuf[4]);
+    }
 
+    private int evaluateNonFlush7(int[] enc) {
         int best = 0;
-        // 3. Générer les 21 combinaisons (elles sont DÉJÀ triées !)
         for (int i = 0; i < 6; i++) {
             for (int j = i + 1; j < 7; j++) {
                 int pos = 0;
                 for (int k = 0; k < 7; k++) {
-                    if (k != i && k != j) comboBuf[pos++] = sortBuf[k];
+                    if (k != i && k != j) comboBuf[pos++] = k;
                 }
-                
-                // L'APPEL A sort5InPlace A DISPARU.
-                // On envoie directement la combinaison dans la table.
-                int v = table[LookupTableGenerator.combinatorialIndex(
-                    comboBuf[0], comboBuf[1], comboBuf[2], comboBuf[3], comboBuf[4])];
-                
+                int v = eval5(enc, comboBuf[0], comboBuf[1], comboBuf[2], comboBuf[3], comboBuf[4]);
                 if (v > best) best = v;
             }
         }
         return best;
     }
-    
-    //Tri 5 entiers dans buff en ordre croissant
-    static void sort5InPlace(int[] buf, int a, int b, int c, int d, int e) {
-        int t;
-        if (a > b) {
-        	t=a; 
-        	a=b; 
-        	b=t;
-        }
-        if (c > d) { 
-        	t=c; 
-        	c=d; 
-        	d=t; 
-        }
-        if (a > c) { 
-        	t=a; 
-        	a=c; 
-        	c=t; 
-        }
-        if (b > d) { 
-        	t=b; 
-        	b=d; 
-        	d=t; 
-        }
-        if (b > c) { 
-        	t=b; 
-        	b=c; 
-        	c=t; 
-        }
-        if (a > e) { 
-        	t=a; 
-        	a=e; 
-        	e=t; 
-        }
-        if (c > e) { 
-        	t=c; 
-        	c=e; 
-        	e=t; 
-        }
-        if (b > e) { 
-        	t=b; 
-        	b=e; 
-        	e=t; 
-        }
-        if (d > e) { 
-        	t=d; 
-        	d=e; 
-        	e=t; 
-        }
-        buf[0]=a; buf[1]=b; buf[2]=c; buf[3]=d; buf[4]=e;
+
+    private static int eval5(int[] enc, int a, int b, int c, int d, int e) {
+        int q = (enc[a] | enc[b] | enc[c] | enc[d] | enc[e]) >> 16;
+        if ((enc[a] & enc[b] & enc[c] & enc[d] & enc[e] & 0xf000) != 0)
+            return CactusKevTables.FLUSHES[q];
+        int s = CactusKevTables.UNIQUE5[q];
+        if (s != 0) return s;
+        int prod = (enc[a] & 0xff) * (enc[b] & 0xff) * (enc[c] & 0xff)
+                 * (enc[d] & 0xff) * (enc[e] & 0xff);
+        return CactusKevTables.PRIMES_MAP.get(prod);
     }
-    
 }

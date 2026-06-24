@@ -9,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class MonteCarloTest {
     private static MonteCarloEngine engine;
-    @BeforeAll static void setup() { engine = new MonteCarloEngine(LookupTableGenerator.generate()); }
+    @BeforeAll static void setup() { engine = new MonteCarloEngine(); }
 
     @Test void acesAbove80() { assertTrue(eq("Ah","As",1) > 80); }
     @Test void worstBelow40() { assertTrue(eq("7h","2c",1) < 40); }

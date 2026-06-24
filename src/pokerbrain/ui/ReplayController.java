@@ -107,7 +107,7 @@ public class ReplayController {
         adviceMap = new HashMap<>();
         try {
             if (AppContext.isReady()) {
-                HandAnalyser analyser = new HandAnalyser(AppContext.getTable());
+                HandAnalyser analyser = new HandAnalyser();
                 List<ActionAdvice> advices = analyser.analyse(hand);
                 for (ActionAdvice adv : advices) {
                     adviceMap.put(adv.getActionIndex(), adv);
