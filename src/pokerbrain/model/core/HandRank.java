@@ -56,6 +56,18 @@ public class HandRank implements Comparable<HandRank> {
 		return Long.hashCode(this.numericValue);
 	}
 	
+	public static HandRank decode(int encodedValue) {
+		HandType type = HandType.fromBaseValue((encodedValue >> 20) & 0xf);
+		List<Rank> kickers = List.of(
+			Rank.fromValue((encodedValue >> 16) & 0xf),
+			Rank.fromValue((encodedValue >> 12) & 0xf),
+			Rank.fromValue((encodedValue >> 8)  & 0xf),
+			Rank.fromValue((encodedValue >> 4)  & 0xf),
+			Rank.fromValue( encodedValue        & 0xf)
+		);
+		return new HandRank(type, kickers);
+	}
+
 	//toString
 	@Override
 	public String toString() {
