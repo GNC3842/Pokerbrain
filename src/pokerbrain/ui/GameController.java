@@ -9,12 +9,11 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import pokerbrain.bot.Bot;
-import pokerbrain.engine.PokerGame;
+import pokerbrain.engine.GameSession;
 import pokerbrain.model.core.Card;
 import pokerbrain.model.game.*;
 import pokerbrain.AppContext;
 import pokerbrain.simulator.MonteCarloEngine;
-import pokerbrain.model.history.HandRecord;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -58,16 +57,9 @@ public class GameController {
     private CardView[]     communityCards;
     private ActionTimeline timeline;
 
-    // État de la partie
-    private PokerGame          game;
-    private List<Bot>          bots;
-    private Map<String, Bot>   botsByPlayerId = new HashMap<>();
-    private Map<String, PlayerView> playerViews = new HashMap<>();
-    private int heroPlayerIndex;
-    private int smallBlind;
-    private int bigBlind;
-    private Label equityLabel;
-    private HandRecord currentRecord;
+    private GameSession              session;
+    private Map<String, PlayerView>  playerViews = new HashMap<>();
+    private Label                    equityLabel;
 
     @FXML
     public void initialize() {
@@ -99,13 +91,7 @@ public class GameController {
 
     public void initGame(List<Player> players, int heroIndex, List<Bot> gameBots,
                          int sb, int bb) {
-        this.smallBlind      = sb;
-        this.bigBlind        = bb;
-        this.heroPlayerIndex = heroIndex;
-        this.bots            = new ArrayList<>(gameBots);
-        for (Bot b : gameBots) botsByPlayerId.put(b.getPlayerId(), b);
-
-        this.game = new PokerGame(players, sb, bb);
+        session = new GameSession(players, heroIndex, gameBots, sb, bb);
         loadPlayers(players, heroIndex);
         startNewHand();
     }
@@ -172,11 +158,10 @@ public class GameController {
         try {
             clearHistory();
             for (CardView cv : communityCards) cv.showEmpty();
-            game.startNewHand();
-            currentRecord = new HandRecord(game, "hero");
+            session.startNewHand();
             refreshAllPlayerViews();
             updatePotLabel();
-            setRound(game.getCurrentRound().name());
+            setRound(session.getGame().getCurrentRound().name());
             processTurn();
         } catch (Exception e) {
             System.err.println("Impossible de démarrer une nouvelle main : " + e.getMessage());
@@ -186,51 +171,52 @@ public class GameController {
 
     // Décide quoi faire selon l'état du jeu : avancer le round, jouer le bot, ou attendre le héro.
     private void processTurn() {
-        if (game.isHandOver()) {
+        if (session.getGame().isHandOver()) {
             handleHandOver();
             return;
         }
 
         updatePotLabel();
-        setRound(game.getCurrentRound().name());
+        setRound(session.getGame().getCurrentRound().name());
 
-        if (game.isRoundComplete()) {
+        if (session.getGame().isRoundComplete()) {
             PauseTransition pause = new PauseTransition(Duration.millis(400));
             pause.setOnFinished(e -> advanceRound());
             pause.play();
             return;
         }
 
-        Player current = game.getCurrentPlayer();
+        Player current = session.getGame().getCurrentPlayer();
         highlightCurrentPlayer(current);
 
-        if (botsByPlayerId.containsKey(current.getId())) {
+        if (session.isBot(current.getId())) {
             disableActions();
+            Bot bot = session.getBot(current.getId()).get();
             PauseTransition pause = new PauseTransition(Duration.millis(600));
-            pause.setOnFinished(e -> runBotTurn(botsByPlayerId.get(current.getId()), current));
+            pause.setOnFinished(e -> runBotTurn(bot, current));
             pause.play();
         } else {
-            enableActions(game.getValidActions());
+            enableActions(session.getGame().getValidActions());
             updateHeroEquity();
         }
     }
 
     private void advanceRound() {
         try {
-            BettingRound finished = game.getCurrentRound();
+            BettingRound finished = session.getGame().getCurrentRound();
             if (finished == BettingRound.RIVER) {
                 handleShowdown();
                 return;
             }
             switch (finished) {
-                case PREFLOP -> game.dealFlop();
-                case FLOP    -> game.dealTurn();
-                case TURN    -> game.dealRiver();
+                case PREFLOP -> session.getGame().dealFlop();
+                case FLOP    -> session.getGame().dealTurn();
+                case TURN    -> session.getGame().dealRiver();
                 default      -> { return; }
             }
-            List<Card> board = game.getBoard();
+            List<Card> board = session.getGame().getBoard();
             revealCommunityCards(board.toArray(new Card[0]));
-            setRound(game.getCurrentRound().name());
+            setRound(session.getGame().getCurrentRound().name());
             updatePotLabel();
             processTurn();
         } catch (Exception e) {
@@ -241,13 +227,9 @@ public class GameController {
     private void handleShowdown() {
         Map<Player, Integer> winnings = new HashMap<>();
         try {
-            winnings = game.showdown();
-            if (currentRecord != null) {
-                SessionData.addHand(currentRecord.buildHand(winnings));
-                currentRecord = null;
-            }
-            String heroId = game.getPlayers().get(heroPlayerIndex).getId();
-            for (Player p : game.getPlayers()) {
+            winnings = session.getGame().showdown();
+            SessionData.addHand(session.buildAndCloseHand(winnings));
+            for (Player p : session.getGame().getPlayers()) {
                 if (!p.isFolded() && !p.isOut()) {
                     PlayerView view = playerViews.get(p.getId());
                     if (view != null) view.setPlayer(p);
@@ -264,7 +246,7 @@ public class GameController {
         }
 
         // Popup résultat (déféré pour éviter le conflit avec l'animation)
-        Player heroPlayer = game.getPlayers().get(heroPlayerIndex);
+        Player heroPlayer = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
         int heroWin = winnings.getOrDefault(heroPlayer, 0);
 
         javafx.application.Platform.runLater(() -> {
@@ -285,14 +267,11 @@ public class GameController {
     }
 
     private void handleHandOver() {
-    	if (currentRecord!= null){
-            SessionData.addHand(currentRecord.buildHand());
-            currentRecord = null;
-        }
+        SessionData.addHand(session.buildAndCloseHand());
         // Popup si le héro gagne par fold des adversaires
-    	Player heroPlayer = game.getPlayers().get(heroPlayerIndex);
+    	Player heroPlayer = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
     	if (!heroPlayer.isFolded() && !heroPlayer.isOut()) {
-    	    long activePlayers = game.getPlayers().stream()
+    	    long activePlayers = session.getGame().getPlayers().stream()
     	        .filter(p -> !p.isFolded() && !p.isOut()).count();
     	    if (activePlayers == 1) {
     	        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
@@ -304,7 +283,7 @@ public class GameController {
     	    }
     	}
         disableActions();
-        long playersWithChips = game.getPlayers().stream()
+        long playersWithChips = session.getGame().getPlayers().stream()
             .filter(p -> p.getStack() > 0).count();
 
         int delaySeconds = playersWithChips < 2 ? 3 : 2;
@@ -319,26 +298,17 @@ public class GameController {
     // ── Bots ──────────────────────────────────────────────────────────────────
 
     private void runBotTurn(Bot bot, Player current) {
-        BettingRound round       = game.getCurrentRound();
-        List<Card>   board       = new ArrayList<>(game.getBoard());
-        int          totalPot    = game.getTotalPot();
-        int          betLevel    = game.getCurrentBetLevel();
-        List<ActionType> valid   = new ArrayList<>(game.getValidActions());
-
         Task<Action> task = new Task<>() {
             @Override
             protected Action call() {
-                int activeOpp = (int) game.getPlayers().stream()
-                    .filter(p -> !p.isFolded() && !p.isOut() && !p.getId().equals(current.getId()))
-                    .count();
-                return bot.decide(round, current, board, totalPot, betLevel, bigBlind, valid, activeOpp);
+                return session.decideBotAction(bot, current);
             }
         };
 
         task.setOnSucceeded(e -> applyBotAction(task.getValue()));
         task.setOnFailed(e -> {
             System.err.println("Bot error: " + task.getException().getMessage());
-            applyBotAction(new Action(current, ActionType.FOLD, round));
+            applyBotAction(new Action(current, ActionType.FOLD, session.getGame().getCurrentRound()));
         });
 
         Thread t = new Thread(task, "bot-thread");
@@ -348,7 +318,7 @@ public class GameController {
 
     private void applyBotAction(Action decision) {
         try {
-            Action applied = applyToGame(decision.getType(), decision.getAmount());
+            Action applied = session.applyAction(decision.getType(), decision.getAmount());
             logAction(applied);
             refreshAllPlayerViews(false);
             updatePotLabel();
@@ -370,7 +340,7 @@ public class GameController {
     @FXML
     private void onCall() {
         disableActions();
-        List<ActionType> valid = game.getValidActions();
+        List<ActionType> valid = session.getGame().getValidActions();
         if (valid.contains(ActionType.CHECK)) applyHeroAction(ActionType.CHECK, 0);
         else                                  applyHeroAction(ActionType.CALL,  0);
     }
@@ -379,7 +349,7 @@ public class GameController {
     private void onRaise() {
         disableActions();
         int amount = (int) Math.round(raiseSlider.getValue());
-        List<ActionType> valid = game.getValidActions();
+        List<ActionType> valid = session.getGame().getValidActions();
         if (valid.contains(ActionType.RAISE))       applyHeroAction(ActionType.RAISE,  amount);
         else if (valid.contains(ActionType.BET))    applyHeroAction(ActionType.BET,    amount);
         else if (valid.contains(ActionType.ALL_IN)) applyHeroAction(ActionType.ALL_IN, amount);
@@ -392,30 +362,16 @@ public class GameController {
 
     private void applyHeroAction(ActionType type, int amount) {
         try {
-            Action applied = applyToGame(type, amount);
+            Action applied = session.applyAction(type, amount);
             logAction(applied);
             refreshAllPlayerViews(false);
             updatePotLabel();
             processTurn();
         } catch (Exception ex) {
             System.err.println("Erreur action héro : " + ex.getMessage());
-            if (!game.isRoundComplete() && !game.isHandOver())
-                enableActions(game.getValidActions());
+            if (!session.getGame().isRoundComplete() && !session.getGame().isHandOver())
+                enableActions(session.getGame().getValidActions());
         }
-    }
-
-    private Action applyToGame(ActionType type, int amount){
-        Action result;
-        if (type == ActionType.BET || type == ActionType.RAISE || type == ActionType.ALL_IN){
-            result = game.applyAction(type, amount);
-        }
-        else{
-            result = game.applyAction(type);
-        }
-        if (currentRecord != null) {
-            currentRecord.recordAction(result);
-        }
-        return result;
     }
 
     // ── UI helpers ────────────────────────────────────────────────────────────
@@ -427,7 +383,7 @@ public class GameController {
         boolean canCall  = valid.contains(ActionType.CALL);
         checkCallButton.setDisable(!canCheck && !canCall);
         if (canCall) {
-            int callAmt = game.getCallAmount();
+            int callAmt = session.getGame().getCallAmount();
             checkCallButton.setText(String.format("Call (%d chips)", callAmt));
         } else {
             checkCallButton.setText("Check");
@@ -440,8 +396,8 @@ public class GameController {
         raiseButton.setText(canRaise ? "Raise" : canBet ? "Bet" : "All-in");
 
         if (canRaise || canBet) {
-            Player heroPlayer = game.getPlayers().get(heroPlayerIndex);
-            int minR = game.getMinRaiseTo();
+            Player heroPlayer = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
+            int minR = session.getGame().getMinRaiseTo();
             int maxR = heroPlayer.getStack();
             raiseSlider.setDisable(false);
             raiseSlider.setMin(minR);
@@ -460,21 +416,14 @@ public class GameController {
         equityLabel.setText("");
     }
 
-    private int countActiveOpponents() {
-        String heroId = game.getPlayers().get(heroPlayerIndex).getId();
-        return (int) game.getPlayers().stream()
-            .filter(p -> !p.isFolded() && !p.isOut() && !p.getId().equals(heroId))
-            .count();
-    }
-
     private void updateHeroEquity() {
-        Player heroP = game.getPlayers().get(heroPlayerIndex);
+        Player heroP = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
         List<Card> hole = heroP.getHoleCards();
         if (hole.size() != 2) {
             return;
         }
-        List<Card> board = new ArrayList<>(game.getBoard());
-        int nbOpp = countActiveOpponents();
+        List<Card> board = new ArrayList<>(session.getGame().getBoard());
+        int nbOpp = session.countActiveOpponents();
         new Thread(() -> {
             try {
                 MonteCarloEngine engine = AppContext.getEngine();
@@ -488,8 +437,8 @@ public class GameController {
     }
 
     private void refreshAllPlayerViews(boolean revealBotCards) {
-        String heroId = game.getPlayers().get(heroPlayerIndex).getId();
-        for (Player p : game.getPlayers()) {
+        String heroId = session.getGame().getPlayers().get(session.getHeroPlayerIndex()).getId();
+        for (Player p : session.getGame().getPlayers()) {
             PlayerView view = playerViews.get(p.getId());
             if (view == null) continue;
             view.setPlayer(p);
@@ -510,7 +459,7 @@ public class GameController {
     }
 
     private void highlightCurrentPlayer(Player current) {
-        for (Player p : game.getPlayers()) {
+        for (Player p : session.getGame().getPlayers()) {
             PlayerView view = playerViews.get(p.getId());
             if (view != null)
                 view.setActive(current != null && current.getId().equals(p.getId()));
@@ -518,7 +467,7 @@ public class GameController {
     }
 
     private void updatePotLabel() {
-        int pot = game.getTotalPot();
+        int pot = session.getGame().getTotalPot();
         potView.setPot(pot);
         potLabel.setText(pot + " chips");
     }
