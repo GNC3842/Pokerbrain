@@ -1,0 +1,42 @@
+# Heatmap TAG — Small Blind FACE À UN OPEN
+# Range de défense, à ne pas confondre avec la range d'ouverture (tag_sb.csv).
+# La SB joue tout le reste de la main hors de position et avec la BB encore
+# derrière : on défend beaucoup plus serré qu'au bouton, et surtout en 3-bet.
+#   R = 3-bet    C = call (payer l'open)    F = fold
+# Format : RANG_HAUT,RANG_BAS,SUITED,ACTION
+#
+# --- Paires ---
+A,A,p,R
+K,K,p,R
+Q,Q,p,R
+J,J,p,R
+T,T,p,R
+9,9,p,C
+8,8,p,C
+7,7,p,C
+6,6,p,C
+# --- Suited ---
+A,K,s,R
+A,Q,s,R
+A,J,s,R
+A,T,s,R
+A,5,s,R
+A,4,s,R
+A,9,s,C
+A,8,s,C
+A,7,s,C
+A,6,s,C
+K,Q,s,R
+K,J,s,C
+K,T,s,C
+Q,J,s,C
+Q,T,s,C
+J,T,s,C
+T,9,s,C
+9,8,s,C
+# --- Offsuit ---
+A,K,o,R
+A,Q,o,R
+A,J,o,C
+A,T,o,C
+K,Q,o,C

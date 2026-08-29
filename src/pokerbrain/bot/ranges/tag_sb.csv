@@ -1,0 +1,85 @@
+# Heatmap TAG — Small Blind, action ouverte (personne n'a relancé)
+# Seule la BB reste à parler : on ouvre large pour voler la blinde,
+# mais uniquement en relançant (jamais de limp, on serait hors de position
+# tout le reste de la main).
+# Format : RANG_HAUT,RANG_BAS,SUITED,ACTION
+# SUITED : s=suited, o=offsuit, p=paire
+# ACTION : R=raise, C=call, F=fold
+#
+# --- Paires ---
+A,A,p,R
+K,K,p,R
+Q,Q,p,R
+J,J,p,R
+T,T,p,R
+9,9,p,R
+8,8,p,R
+7,7,p,R
+6,6,p,R
+5,5,p,R
+4,4,p,R
+3,3,p,R
+2,2,p,R
+# --- Suited ---
+A,K,s,R
+A,Q,s,R
+A,J,s,R
+A,T,s,R
+A,9,s,R
+A,8,s,R
+A,7,s,R
+A,6,s,R
+A,5,s,R
+A,4,s,R
+A,3,s,R
+A,2,s,R
+K,Q,s,R
+K,J,s,R
+K,T,s,R
+K,9,s,R
+K,8,s,R
+K,7,s,R
+K,6,s,R
+K,5,s,R
+Q,J,s,R
+Q,T,s,R
+Q,9,s,R
+Q,8,s,R
+Q,7,s,R
+J,T,s,R
+J,9,s,R
+J,8,s,R
+T,9,s,R
+T,8,s,R
+9,8,s,R
+9,7,s,R
+8,7,s,R
+8,6,s,R
+7,6,s,R
+7,5,s,R
+6,5,s,R
+5,4,s,R
+# --- Offsuit ---
+A,K,o,R
+A,Q,o,R
+A,J,o,R
+A,T,o,R
+A,9,o,R
+A,8,o,R
+A,7,o,R
+A,6,o,R
+A,5,o,R
+A,4,o,R
+A,3,o,R
+A,2,o,R
+K,Q,o,R
+K,J,o,R
+K,T,o,R
+K,9,o,R
+K,8,o,R
+Q,J,o,R
+Q,T,o,R
+Q,9,o,R
+J,T,o,R
+J,9,o,R
+T,9,o,R
