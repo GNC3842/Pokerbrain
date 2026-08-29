@@ -1,5 +1,6 @@
 package pokerbrain.ui;
 
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
@@ -39,6 +40,9 @@ public class ReplayController {
     private List<GameState>    states;
     private Map<Integer, ActionAdvice> adviceMap;
     private int currentStep = 0;
+    private boolean analysisPending;
+    private String  analysisError;
+    private String  handSummary;
 
     @FXML
     public void initialize() {
@@ -105,17 +109,8 @@ public class ReplayController {
         }
 
         adviceMap = new HashMap<>();
-        try {
-            if (AppContext.isReady()) {
-                HandAnalyser analyser = new HandAnalyser();
-                List<ActionAdvice> advices = analyser.analyse(hand);
-                for (ActionAdvice adv : advices) {
-                    adviceMap.put(adv.getActionIndex(), adv);
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("[Replay] Erreur analyse : " + e.getMessage());
-        }
+        startAnalysis(h);
+
      // Afficher le résultat du showdown : gagnant + cartes des joueurs
         Map<String, Integer> winnings = h.getWinnings();
         StringBuilder resultText = new StringBuilder();
@@ -148,10 +143,55 @@ public class ReplayController {
             }
         }
 
-        adviceLabel.setText(resultText.toString());
-        adviceLabel.setStyle("-fx-text-fill: #d4af37; -fx-font-size: 13px; -fx-padding: 8;"
-            + "-fx-background-color: #0f3020; -fx-background-radius: 6px;");
+        // Conservé pour être réaffiché sur les étapes sans conseil, au lieu d'être
+        // écrasé par le premier showStep().
+        handSummary = resultText.toString();
         showStep(0);
+    }
+
+    /**
+     * Lance l'analyse sur un thread de fond.
+     *
+     * Elle tournait auparavant dans initialize(), donc sur le thread JavaFX, avec
+     * 10 000 itérations Monte-Carlo par action : l'écran de replay gelait plusieurs
+     * secondes à l'ouverture. Le Task rend la main immédiatement, et les conseils
+     * apparaissent dès qu'ils sont prêts.
+     */
+    private void startAnalysis(Hand h) {
+        if (!AppContext.isReady()) return;
+
+        Task<Map<Integer, ActionAdvice>> task = new Task<>() {
+            @Override
+            protected Map<Integer, ActionAdvice> call() {
+                Map<Integer, ActionAdvice> result = new HashMap<>();
+                // Une instance par tâche : le MonteCarloEngine n'est pas partageable entre threads
+                for (ActionAdvice adv : new HandAnalyser().analyse(h)) {
+                    result.put(adv.getActionIndex(), adv);
+                }
+                return result;
+            }
+        };
+
+        task.setOnSucceeded(e -> {
+            adviceMap = task.getValue();
+            analysisPending = false;
+            showStep(currentStep);
+        });
+        task.setOnFailed(e -> {
+            analysisPending = false;
+            // L'échec doit se voir : le silence faisait passer une analyse plantée
+            // pour une main sans le moindre conseil à donner.
+            Throwable cause = task.getException();
+            analysisError = (cause == null) ? "cause inconnue" : cause.toString();
+            System.err.println("[Replay] Analyse interrompue : " + analysisError);
+            showStep(currentStep);
+        });
+
+        analysisPending = true;
+        analysisError = null;
+        Thread worker = new Thread(task, "hand-analyser");
+        worker.setDaemon(true);
+        worker.start();
     }
 
     private void showStep(int index) {
@@ -195,25 +235,58 @@ public class ReplayController {
         stepCounterLabel.setText("Étape " + (index + 1) + " / " + actions.size());
         timeline.highlightEntry(index);
 
-        ActionAdvice advice = adviceMap.get(index);
-        if (advice != null) {
-            String color;
-            if (advice.getScore() >= 80) color = "#2ecc71";
-            else if (advice.getScore() >= 50) color = "#f39c12";
-            else color = "#e74c3c";
+        showAdvice(index);
+    }
 
-            adviceLabel.setText("Score : " + advice.getScore() + "/100\n" + advice.getReasoning());
-            adviceLabel.setStyle("-fx-text-fill: " + color
-                + "; -fx-font-size: 12px; -fx-padding: 8;"
-                + "-fx-background-color: #0f3020; -fx-background-radius: 6px;");
+    private void showAdvice(int index) {
+        ActionAdvice advice = (adviceMap == null) ? null : adviceMap.get(index);
 
-            if (advice.getEquity() >= 0) {
-                equityChart.setHeroVillain(advice.getEquity() * 100);
+        if (advice == null) {
+            if (analysisPending) {
+                setAdviceText("Analyse en cours…", "#a09070");
+            } else if (analysisError != null) {
+                setAdviceText("L'analyse de cette main a échoué : " + analysisError, "#e74c3c");
+            } else {
+                // Pas de conseil sur cette action (ce n'est pas une action du héro) :
+                // on remet le résumé de la main plutôt qu'un panneau vide.
+                setAdviceText(handSummary == null ? "" : handSummary, "#d4af37");
             }
-        } else {
-            adviceLabel.setText("");
-            adviceLabel.setStyle("-fx-text-fill: #c8d8c8; -fx-font-size: 12px; -fx-padding: 8;");
+            return;
         }
+
+        // Action non analysable : afficher le motif plutôt qu'un score trompeur à 0/100
+        if (!advice.isAnalysable()) {
+            setAdviceText(advice.getReasoning(), "#a09070");
+            return;
+        }
+
+        String color;
+        if (advice.getScore() >= 80) color = "#2ecc71";
+        else if (advice.getScore() >= 50) color = "#f39c12";
+        else color = "#e74c3c";
+
+        StringBuilder text = new StringBuilder();
+        text.append("Score : ").append(advice.getScore()).append("/100\n");
+        if (!advice.getContext().isEmpty()) {
+            text.append(advice.getContext()).append('\n');
+        }
+        text.append(advice.getReasoning());
+        if (advice.getEvDelta() > 0) {
+            text.append(String.format("%nEV perdue : %.1f BB", advice.getEvDelta()));
+        }
+
+        setAdviceText(text.toString(), color);
+
+        if (advice.getEquity() >= 0) {
+            equityChart.setHeroVillain(advice.getEquity() * 100);
+        }
+    }
+
+    private void setAdviceText(String text, String color) {
+        adviceLabel.setText(text);
+        adviceLabel.setStyle("-fx-text-fill: " + color
+            + "; -fx-font-size: 12px; -fx-padding: 8;"
+            + "-fx-background-color: #0f3020; -fx-background-radius: 6px;");
     }
 
     @FXML private void onPrevStep()  { if (currentStep > 0) showStep(--currentStep); }
