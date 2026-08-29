@@ -44,10 +44,16 @@ public class StatisticsController {
             return;
         }
 
-        PlayerStatistics stats = PlayerStatisticsCalculator.calculate(hands, "hero", 10);
-        loadStats(stats.getVPIP(), stats.getPFR(), 0,
+        // La big blind vient des mains jouées, pas d'une constante : sinon le BB/100
+        // et le gain total sont exprimés dans une unité qui n'est pas celle de la table.
+        int bigBlind = hands.get(hands.size() - 1).getBigBlind();
+        PlayerStatistics stats = PlayerStatisticsCalculator.calculate(hands, "hero", bigBlind);
+        // -1 quand le joueur n'a jamais eu l'occasion de 3-better : afficher 0 % ferait
+        // croire à une fuite là où il n'y a simplement pas de donnée.
+        double threeBet = stats.hasThreeBetSample() ? stats.getThreeBet() : -1;
+        loadStats(stats.getVPIP(), stats.getPFR(), threeBet,
                   stats.getWTSD(), stats.getWSD(), stats.getBBPer100(),
-                  stats.getHandsPlayed(), stats.getTotalWinnings());
+                  stats.getHandsPlayed(), stats.getTotalWinnings() / (double) Math.max(1, bigBlind));
 
         clearLeaks();
         List<Leak> leaks = LeakDetector.detect(stats);
@@ -66,7 +72,7 @@ public class StatisticsController {
                           int handsPlayed, double totalGain) {
         vpipLabel.setText(String.format("%.0f%%", vpip));
         pfrLabel.setText(String.format("%.0f%%", pfr));
-        threeBetLabel.setText(String.format("%.0f%%", threeBet));
+        threeBetLabel.setText(threeBet < 0 ? "—" : String.format("%.0f%%", threeBet));
         wtsdLabel.setText(String.format("%.0f%%", wtsd));
         wsdLabel.setText(String.format("%.0f%%", wsd));
         bbPer100Label.setText(String.format("%+.1f", bbPer100));
@@ -78,7 +84,8 @@ public class StatisticsController {
         totalGainLabel.setText(String.format("%+.1f BB", totalGain));
 
         var chartData = new LinkedHashMap<String, Double>();
-        chartData.put("VPIP", vpip); chartData.put("PFR", pfr); chartData.put("3-Bet", threeBet);
+        chartData.put("VPIP", vpip); chartData.put("PFR", pfr);
+        chartData.put("3-Bet", Math.max(0, threeBet));
         chartData.put("WTSD", wtsd); chartData.put("W$SD", wsd);
         winrateChart.setEquities(chartData);
     }
