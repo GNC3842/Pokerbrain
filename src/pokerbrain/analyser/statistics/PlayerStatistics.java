@@ -5,6 +5,7 @@ package pokerbrain.analyser.statistics;
  *
  * VPIP = Voluntarily Put money In Pot (hors blindes forcées)
  * PFR = Pre-Flop Raise percentage
+ * 3-Bet = fréquence de relance face à une relance adverse preflop
  * AF = Aggression Factor = (bets + raises) / calls
  * WTSD = Went To ShowDown percentage (parmi les mains jouées postflop)
  * WSD= Won at ShowDown percentage
@@ -30,17 +31,20 @@ public class PlayerStatistics {
 	private final int pfrCount;
 	private final int callCount;
 	private final int agressiveCount;
-	
+
+	private final int threeBetCount;
+	private final int threeBetOpportunities;
+
 	private final int wentToShowDown;
 	private final int wonAtShowDown;
-	
+
 	private final int totalWinnings;
 	private final int bigBlind;
-	
-	//Constrcuteur
+
+	//Constructeur complet
 	public PlayerStatistics(String playerId, String playerName, int handsPlayed,int vpipCount,
-			int pfrCount, int callCount, int agressiveCount, int wentToShowDown, int wonAtShowDown,
-			int totalWinnings, int bigBlind) {
+			int pfrCount, int callCount, int agressiveCount, int threeBetCount, int threeBetOpportunities,
+			int wentToShowDown, int wonAtShowDown, int totalWinnings, int bigBlind) {
 		this.playerId = playerId;
 		this.playerName = playerName;
 		this.handsPlayed = handsPlayed;
@@ -48,10 +52,20 @@ public class PlayerStatistics {
 		this.pfrCount = pfrCount;
 		this.callCount = callCount;
 		this.agressiveCount = agressiveCount;
+		this.threeBetCount = threeBetCount;
+		this.threeBetOpportunities = threeBetOpportunities;
 		this.wentToShowDown = wentToShowDown;
 		this.wonAtShowDown = wonAtShowDown;
 		this.totalWinnings = totalWinnings;
 		this.bigBlind = bigBlind;
+	}
+
+	//Constructeur sans données de 3-bet (le 3-bet est alors non mesuré)
+	public PlayerStatistics(String playerId, String playerName, int handsPlayed,int vpipCount,
+			int pfrCount, int callCount, int agressiveCount, int wentToShowDown, int wonAtShowDown,
+			int totalWinnings, int bigBlind) {
+		this(playerId, playerName, handsPlayed, vpipCount, pfrCount, callCount, agressiveCount,
+			 0, 0, wentToShowDown, wonAtShowDown, totalWinnings, bigBlind);
 	}
 	
 	//Calcul des stats
@@ -69,21 +83,48 @@ public class PlayerStatistics {
 		return this.pfrCount*100.0 / this.handsPlayed;
 	}
 	
-	//Facteur d'agressivité
-	public double getAF() {
-		if(this.callCount == 0) {
+	//Fréquence de 3-bet : relances face à une relance adverse / occasions de le faire
+	public double getThreeBet() {
+		if (this.threeBetOpportunities == 0) {
 			return 0.0;
+		}
+		return this.threeBetCount * 100.0 / this.threeBetOpportunities;
+	}
+
+	//Vrai si le 3-bet a été mesuré sur au moins une occasion (sinon getThreeBet() n'a pas de sens)
+	public boolean hasThreeBetSample() {
+		return this.threeBetOpportunities > 0;
+	}
+
+	/**
+	 * Facteur d'agressivité = (bets + raises) / calls.
+	 *
+	 * Un joueur qui ne suit jamais mais mise a une agressivité infinie : renvoyer 0.0
+	 * dans ce cas ferait passer le joueur le plus agressif de la table pour un passif.
+	 * On distingue donc « aucune action postflop » (0.0) de « jamais de call » (infini).
+	 */
+	public double getAF() {
+		if (this.callCount == 0) {
+			if (this.agressiveCount == 0) {
+				return 0.0; // aucune donnée
+			}
+			return Double.POSITIVE_INFINITY;
 		}
 		return (double) this.agressiveCount / this.callCount;
 	}
-	
-	//Went to show down
+
+	//Nombre d'actions volontaires prises en compte dans l'AF (taille d'échantillon)
+	public int getActionCount() {
+		return this.agressiveCount + this.callCount;
+	}
+
+	//Went to show down : parmi les mains réellement jouées (VPIP), en pourcentage
 	public double getWTSD() {
-		int postflopHands = this.vpipCount; //main jouée ie en postflop, le joueur ne s'est aps couhcé de suite
+		int postflopHands = this.vpipCount; //main jouée ie en postflop, le joueur ne s'est pas couché de suite
 		if(postflopHands == 0) {
 			return 0.0;
 		}
-		return this.wentToShowDown / postflopHands;
+		return this.wentToShowDown * 100.0 / postflopHands;
 	}
 	
 	//Won at show down
@@ -154,6 +195,14 @@ public class PlayerStatistics {
     	return this.callCount;
     }
     
+    public int getThreeBetCount() {
+    	return this.threeBetCount;
+    }
+
+    public int getThreeBetOpportunities() {
+    	return this.threeBetOpportunities;
+    }
+
     public int getWentToShowDown() {
     	return this.wentToShowDown;
     }
@@ -172,8 +221,14 @@ public class PlayerStatistics {
     
     @Override
     public String toString() {
-        return String.format("%s [%s] VPIP=%.0f%% PFR=%.0f%% AF=%.1f WTSD=%.0f%% WSD=%.0f%% BB/100=%.1f (%d mains)",
-            this.playerName, getProfile(), getVPIP(), getPFR(), getAF(),
+        String af;
+        if (Double.isInfinite(getAF())) {
+            af = "∞";
+        } else {
+            af = String.format("%.1f", getAF());
+        }
+        return String.format("%s [%s] VPIP=%.0f%% PFR=%.0f%% 3Bet=%.0f%% AF=%s WTSD=%.0f%% WSD=%.0f%% BB/100=%.1f (%d mains)",
+            this.playerName, getProfile(), getVPIP(), getPFR(), getThreeBet(), af,
             getWTSD(), getWSD(), getBBPer100(), this.handsPlayed);
     }
 }
