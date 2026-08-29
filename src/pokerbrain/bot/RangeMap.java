@@ -130,6 +130,42 @@ public class RangeMap {
         }
     }
 
+    //Vrai si aucune main n'est jouée (toutes les cellules à FOLD).
+    //Sert à détecter un fichier de range absent ou vide, plutôt que de conseiller
+    //silencieusement « fold » sur les 169 mains.
+    public boolean isEmpty() {
+        for (int i = 0; i < SIZE; i++) {
+            if (pairs[i] != ActionType.FOLD) return false;
+            for (int j = 0; j < SIZE; j++) {
+                if (suited[i][j] != ActionType.FOLD) return false;
+                if (offsuit[i][j] != ActionType.FOLD) return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Adapte cette range en filtre pour le Monte-Carlo, qui ne manipule que des
+     * index de cartes primitifs (index = rangIndex*4 + couleurIndex, cf. CardPrimitiveBridge).
+     * Une main adverse est acceptée si la range ne dit pas FOLD dessus.
+     */
+    public pokerbrain.simulator.MonteCarloEngine.VillainRange asVillainRange() {
+        return (indexA, indexB) -> {
+            int rankA = indexA / 4;
+            int rankB = indexB / 4;
+            boolean isSuited = (indexA % 4) == (indexB % 4);
+            if (rankA == rankB) {
+                return pairs[rankA] != ActionType.FOLD;
+            }
+            int high = Math.max(rankA, rankB);
+            int low = Math.min(rankA, rankB);
+            if (isSuited) {
+                return suited[high][low] != ActionType.FOLD;
+            }
+            return offsuit[high][low] != ActionType.FOLD;
+        };
+    }
+
     // Helper: renvoie juste le rank normalisé
     private static int idx(Rank r) {
         return r.getValue() - 2;

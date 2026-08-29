@@ -25,6 +25,9 @@ public final class MonteCarloEngine {
 
     private static final int CONVERGENCE_BLOCK  = 500;
     private static final double CONVERGENCE_THRESHOLD = 0.005; // ±0.5%
+    //Tirage par rejet dans une range : garde-fous contre une range trop étroite
+    private static final int MAX_REJECTS_PER_ITER = 200;
+    private static final int MAX_ABANDONED = 200;
 
     private final FastHandEvaluator evaluator;
     private final DeckPrimitive     deck;
@@ -45,8 +48,35 @@ public final class MonteCarloEngine {
     }
 
 
+    /**
+     * Filtre de mains adverses, exprimé sur les index primitifs du deck
+     * (index = rangIndex*4 + couleurIndex, cf. CardPrimitiveBridge.indexOf).
+     *
+     * Défini ici plutôt que dans `bot` pour que le simulateur reste indépendant :
+     * c'est l'appelant qui adapte sa RangeMap (cf. RangeMap.asVillainRange()).
+     */
+    @FunctionalInterface
+    public interface VillainRange {
+        boolean accepts(int cardIndexA, int cardIndexB);
+    }
+
     //Calcule l'équité du hero contre 1 adversaire à cartes inconnues
     public EquityResult calculateEquity(List<Card> heroHole, List<Card> board, int maxIter, int nbOpposants) {
+        return calculateEquity(heroHole, board, maxIter, nbOpposants, null);
+    }
+
+    /**
+     * Équité du héros contre des adversaires dont les mains sont tirées dans une range.
+     *
+     * Le tirage se fait par rejet : on mélange, et si une des mains adverses sort de la
+     * range on rejoue le mélange. Une range très étroite fait donc beaucoup de rejets,
+     * d'où le plafond MAX_REJECTS_PER_ITER au-delà duquel l'itération est abandonnée
+     * (et non comptée) — mieux vaut moins d'itérations qu'un échantillon biaisé.
+     *
+     * villainRange == null → adversaires à mains aléatoires (comportement historique).
+     */
+    public EquityResult calculateEquity(List<Card> heroHole, List<Card> board, int maxIter,
+                                        int nbOpposants, VillainRange villainRange) {
         validate(heroHole, board, maxIter);
 
         int boardSize = board.size();
@@ -57,9 +87,7 @@ public final class MonteCarloEngine {
         DeckPrimitive.encodeCards(heroHole, heroIdx, heroEnc);
         DeckPrimitive.encodeCards(board, boardIdx, boardEnc);
 
-        // Hero : hole cards
-        heroEnc[0] = heroEnc[0]; // déjà en place
-        heroEnc[1] = heroEnc[1];
+        // Hero : hole cards déjà en place (encodeCards a écrit heroEnc[0..1])
         // Hero : board connu
         for (int i = 0; i < boardSize; i++) {
             heroEnc[2 + i] = boardEnc[i];
@@ -84,6 +112,7 @@ public final class MonteCarloEngine {
 
         //Boucle Monte-Carlo
         int wins = 0, ties = 0, losses = 0, iter = 0;
+        int abandoned = 0;
         double equitySum = 0.0; //en cas dégalité à min 3
         ThreadLocalRandom rng = ThreadLocalRandom.current();
 
@@ -93,6 +122,23 @@ public final class MonteCarloEngine {
             while (iter < blockEnd) {
                 // Mélange partiel : 2 (villain) + boardMissing cartes
                 deck.shufflePartial(rng, (2*nbOpposants) + boardMissing);
+
+                // Tirage par rejet quand les adversaires ont une range imposée
+                if (villainRange != null) {
+                    int rejects = 0;
+                    while (!allInRange(villainRange, nbOpposants) && rejects < MAX_REJECTS_PER_ITER) {
+                        deck.shufflePartial(rng, (2*nbOpposants) + boardMissing);
+                        rejects++;
+                    }
+                    if (rejects >= MAX_REJECTS_PER_ITER) {
+                        // Range trop étroite pour ce deck : on abandonne l'itération
+                        abandoned++;
+                        if (abandoned >= MAX_ABANDONED) {
+                            return new EquityResult(wins, ties, losses, iter, equitySum);
+                        }
+                        continue;
+                    }
+                }
 
 
                 // Compléter le board (partagé hero+villain)
@@ -154,6 +200,16 @@ public final class MonteCarloEngine {
         }
 
         return new EquityResult(wins, ties, losses, iter, equitySum);
+    }
+
+    //Vrai si les mains des nbOpposants adversaires du mélange courant sont toutes dans la range
+    private boolean allInRange(VillainRange range, int nbOpposants) {
+        for (int i = 0; i < nbOpposants; i++) {
+            if (!range.accepts(deck.drawnIndex(i * 2), deck.drawnIndex(i * 2 + 1))) {
+                return false;
+            }
+        }
+        return true;
     }
 
     //Validation
