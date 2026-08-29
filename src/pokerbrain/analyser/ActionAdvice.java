@@ -40,7 +40,14 @@ public class ActionAdvice {
     private final double equity; // équité MC au moment du coup (0.0-1.0)
     private final double potOdds;// cote du pot requise (0.0-1.0), -1 si pas applicable
     private final String reasoning;// explication lisible
-    
+
+    // Détail structuré du calcul, pour que l'UI puisse afficher autre chose qu'un texte
+    private final double evDelta;  // EV perdue par rapport au coup recommandé, en BB (-1 = non calculée)
+    private final int outs;        // outs du héro sur un tirage (-1 = non applicable)
+    private final double spr;      // stack-to-pot ratio au moment du coup (-1 = non applicable)
+    private final String context;  // ex: "pot 3-bet, multiway, SPR 2.4"
+    private final boolean analysable; // faux si l'action n'a pas pu être analysée
+
     private ActionAdvice(Builder b) {
         this.actionIndex = b.actionIndex;
         this.playerName = b.playerName;
@@ -53,6 +60,11 @@ public class ActionAdvice {
         this.equity = b.equity;
         this.potOdds = b.potOdds;
         this.reasoning = b.reasoning;
+        this.evDelta = b.evDelta;
+        this.outs = b.outs;
+        this.spr = b.spr;
+        this.context = b.context;
+        this.analysable = b.analysable;
     }
     
     //les getters as usal
@@ -100,18 +112,43 @@ public class ActionAdvice {
     	return this.reasoning;
     }
     
+    public double getEvDelta() {
+    	return this.evDelta;
+    }
+
+    public int getOuts() {
+    	return this.outs;
+    }
+
+    public double getSpr() {
+    	return this.spr;
+    }
+
+    public String getContext() {
+    	return this.context;
+    }
+
+    //Faux quand l'action n'a pas pu être analysée (main incomplète, données manquantes).
+    //Le conseil porte alors le motif dans reasoning et ne doit pas compter dans les scores.
+    public boolean isAnalysable() {
+    	return this.analysable;
+    }
+
     //Methode utile
     public boolean isMistake() {
-    	return this.played != this.recommended;
+    	return this.analysable && this.played != this.recommended;
     }
-    
+
     public boolean isCriticalMistake() {
-    	return this.score < 40;
+    	return this.analysable && this.score < 40;
     }
-    
+
     //ToString
     @Override
     public String toString() {
+        if (!analysable) {
+            return String.format("[%s] %s — non analysable : %s", round, playerName, reasoning);
+        }
         return String.format("[%s] %s — Joué: %s | Optimal: %s | Score: %d/100 — %s",
             round, playerName, played, recommended, score, reasoning);
     }
@@ -129,7 +166,13 @@ public class ActionAdvice {
         private double equity = -1;
         private double potOdds = -1;
         private String reasoning = "";
-        
+        private double evDelta = -1;
+        private int outs = -1;
+        private double spr = -1;
+        private String context = "";
+        private boolean analysable = true;
+
+
         public Builder actionIndex(int v) {
         	this.actionIndex = v;
         	return this;
@@ -180,11 +223,37 @@ public class ActionAdvice {
         	return this; 
         }
         
-        public Builder reasoning(String v){ 
+        public Builder reasoning(String v){
         	this.reasoning = v;
-        	return this; 
+        	return this;
         }
-        
+
+        public Builder evDelta(double v){
+        	this.evDelta = v;
+        	return this;
+        }
+
+        public Builder outs(int v){
+        	this.outs = v;
+        	return this;
+        }
+
+        public Builder spr(double v){
+        	this.spr = v;
+        	return this;
+        }
+
+        public Builder context(String v){
+        	this.context = v;
+        	return this;
+        }
+
+        public Builder analysable(boolean v){
+        	this.analysable = v;
+        	return this;
+        }
+
+
         public ActionAdvice build() { 
         	return new ActionAdvice(this); 
         }
