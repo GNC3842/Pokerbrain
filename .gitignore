@@ -15,3 +15,7 @@ target/
 
 
 /target/
+
+#Claude Code (notes locales, hors dépôt)
+/CLAUDE.md
+/docs/
