@@ -1,5 +1,7 @@
 package pokerbrain.model.history;
 
+import pokerbrain.Debug;
+
 import pokerbrain.model.core.Card;
 import pokerbrain.model.game.Player;
 import pokerbrain.model.game.PlayerStatus;
@@ -40,7 +42,7 @@ public class PlayerState{
 
   //Méthode pricnpale : crée un snapshot depuis un Player mutable
   public static PlayerState of(Player joueur) {
-    System.out.println("[PlayerState] Snapshot créé pour " + joueur.getName() + " | Stack: " + joueur.getStack() + " | Cartes: " + joueur.getHoleCards());//log
+    Debug.log(() -> "[PlayerState] Snapshot créé pour " + joueur.getName() + " | Stack: " + joueur.getStack() + " | Cartes: " + joueur.getHoleCards());
     return new PlayerState(
             joueur.getId(), joueur.getName(), joueur.getStack(), joueur.getCurrentBet(),
             joueur.getStatus(), joueur.getPosition(), joueur.getSeat(),

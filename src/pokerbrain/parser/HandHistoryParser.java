@@ -1,5 +1,7 @@
 package pokerbrain.parser;
 
+import pokerbrain.Debug;
+
 import pokerbrain.model.core.Card;
 import pokerbrain.model.game.*;
 import pokerbrain.model.history.GameState;
@@ -34,7 +36,7 @@ public final class HandHistoryParser{
   public static List<Hand> parseMultiple(String content) throws ParseException {
     List<Hand> hands = new ArrayList<>();
     String[] blocks = content.split("\\n---\\s*\\n");
-    System.out.println("[Parser] Blocs bruts détectés dans le fichier : " + blocks.length); //log
+    Debug.log(() -> "[Parser] Blocs bruts détectés dans le fichier : " + blocks.length);
     for (String handReaded : blocks) {
       handReaded = handReaded.trim();
       if (handReaded.isEmpty()) {
@@ -47,11 +49,11 @@ public final class HandHistoryParser{
 
   //Parsing d'une main
   private static Hand parseSingleHand(String blockDeJeu) throws ParseException {
-    System.out.println("[Parser] Début du parsing d'un nouveau bloc de jeu..."); //log
+    Debug.log(() -> "[Parser] Début du parsing d'un nouveau bloc de jeu...");
     String[] lines = blockDeJeu.split("\\n");
 
     Map<String, List<String>> sections = splitSections(lines);
-    System.out.println("[Parser] Sections trouvées dans ce bloc : " + sections.keySet());
+    Debug.log(() -> "[Parser] Sections trouvées dans ce bloc : " + sections.keySet());
 
     Hand.Builder builder = new Hand.Builder();
     List<Player> players = new ArrayList<>();
@@ -91,7 +93,7 @@ public final class HandHistoryParser{
 
     parseShowdown(sections.getOrDefault("SHOWDOWN", Collections.emptyList()), builder);
     reconstructGameStates(builder.getActions(), board, builder.getSmallBlind(), builder.getBigBlind(), builder);
-    System.out.println("[Parser] Fin du parsing du bloc");
+    Debug.log(() -> "[Parser] Fin du parsing du bloc");
     return builder.build();
   }
 
@@ -160,7 +162,7 @@ public final class HandHistoryParser{
       switch (key) {
         case "HandId":
           builder.handId(value);
-          System.out.println("[Parser] HandId identifié : " + value); //log
+          Debug.log(() -> "[Parser] HandId identifié : " + value);
           break;
         case "Table":
           builder.tableName(value); 

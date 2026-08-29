@@ -1,5 +1,7 @@
 package pokerbrain.parser;
 
+import pokerbrain.Debug;
+
 import pokerbrain.model.history.Hand;
 
 import java.io.IOException;
@@ -48,7 +50,7 @@ public final class HistoryManager {
   public HistoryManager() {
     String userHome = System.getProperty("user.home");
     this.historyDir = Paths.get(userHome, DIR_NAME, HISTORY_DIR);
-    System.out.println("[HistoryManager] Dossier d'historique initialisé et valide : " + historyDir.toAbsolutePath());//log
+    Debug.log(() -> "[HistoryManager] Dossier d'historique initialisé et valide : " + historyDir.toAbsolutePath());
     try {
       Files.createDirectories(historyDir);
     } catch (IOException e) {
@@ -68,7 +70,7 @@ public final class HistoryManager {
 
     LocalDate date = extractDate(hand);
     Path filePath = getFileForDate(date);
-    System.out.println("[HistoryManager] Tentative de sauvegarde de la main " + hand.getHandId() + " pour la date : " + date);//log 
+    Debug.log(() -> "[HistoryManager] Tentative de sauvegarde de la main " + hand.getHandId() + " pour la date : " + date);
 
     try {
       HandHistoryWriter.appendToFile(hand, filePath);
@@ -83,12 +85,12 @@ public final class HistoryManager {
     List<Hand> allHands = new ArrayList<>();
 
     List<Path> files = listHistoryFiles();
-    System.out.println("[HistoryManager] Chargement global : " + files.size() + " fichiers historiques trouvés (.txt).");//log
+    Debug.log(() -> "[HistoryManager] Chargement global : " + files.size() + " fichiers historiques trouvés (.txt).");
     for (Path file : files) {
       List<Hand> hands = loadFile(file);
       allHands.addAll(hands);
     }
-    System.out.println("[HistoryManager] Fin du chargement global. Total de mains chargées en mémoire : " + allHands.size());//log
+    Debug.log(() -> "[HistoryManager] Fin du chargement global. Total de mains chargées en mémoire : " + allHands.size());
     return allHands;
   }
 

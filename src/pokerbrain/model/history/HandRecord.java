@@ -1,5 +1,7 @@
 package pokerbrain.model.history;
 
+import pokerbrain.Debug;
+
 import pokerbrain.engine.PokerGame;
 import pokerbrain.model.game.Action;
 import pokerbrain.model.game.Player;
@@ -42,7 +44,7 @@ public final class HandRecord{
   }
 
   public void recordAction(Action action) {
-    System.out.println("[HandRecord] Enregistrement Action : " + action.getPlayer().getName() + " -> " + action.getType() + " (" + action.getAmount() + ")");//log
+    Debug.log(() -> "[HandRecord] Enregistrement Action : " + action.getPlayer().getName() + " -> " + action.getType() + " (" + action.getAmount() + ")");
     builder.addAction(action);
     List<PlayerState> playerStates = new ArrayList<>();
     for (Player player : game.getPlayers()) {
@@ -55,7 +57,7 @@ public final class HandRecord{
         currentId = game.getCurrentPlayer().getId();
       } catch (Exception e) {
         //Round terminé entre-temps
-        System.out.println("[HandRecord] Exception levée: " + e.toString());//log
+        Debug.log(() -> "[HandRecord] Exception levée: " + e.toString());
       }
     }
 
@@ -70,7 +72,7 @@ public final class HandRecord{
             .lastAction(action)
             .build();
         builder.addGameState(gs);
-    System.out.println("[HandRecord] Snapshot créé - Round: " + game.getCurrentRound() + " | Pot Total: " + game.getTotalPot() + " | Joueurs actifs: " + playerStates.size());//log
+    Debug.log(() -> "[HandRecord] Snapshot créé - Round: " + game.getCurrentRound() + " | Pot Total: " + game.getTotalPot() + " | Joueurs actifs: " + playerStates.size());
   }
 
   public Hand buildHand(Map<Player, Integer> winnings) {
@@ -80,7 +82,7 @@ public final class HandRecord{
         builder.addWinning(entry.getKey().getId(), entry.getValue());
       }
     }
-    System.out.println("[HandRecord] Finalisation de la main : " + builder.getActions().size() + " actions et " + builder.getGameStates().size() + " snapshots enregistrés.");//log
+    Debug.log(() -> "[HandRecord] Finalisation de la main : " + builder.getActions().size() + " actions et " + builder.getGameStates().size() + " snapshots enregistrés.");
     return builder.build();
   }
 
