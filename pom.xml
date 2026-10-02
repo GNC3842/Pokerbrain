@@ -35,7 +35,7 @@
     </dependencies>
 
     <build>
-        <!-- Garde votre structure src/ existante -->
+        <!-- Garde la stucture src/ existante -->
         <sourceDirectory>src</sourceDirectory>
         <testSourceDirectory>src/test/java</testSourceDirectory>
         <resources>
@@ -49,6 +49,17 @@
         </resources>
 
         <plugins>
+            <!-- Fixer les versions des plugins Maven -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-clean-plugin</artifactId>
+                <version>3.2.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.4.0</version>
+            </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
