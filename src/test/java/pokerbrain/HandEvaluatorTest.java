@@ -5,7 +5,10 @@ import pokerbrain.model.core.*;
 import pokerbrain.engine.HandEvaluator;
 import pokerbrain.simulator.FastHandEvaluator;
 import pokerbrain.simulator.CardPrimitiveBridge;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import static org.junit.jupiter.api.Assertions.*;
 
 public class HandEvaluatorTest {
@@ -25,24 +28,78 @@ public class HandEvaluatorTest {
         assertTrue(kk.compareTo(qq) > 0);
     }
     @Test void decodeTypeFromFastEval() {
-        List<Card> cards = List.of(
-            Card.fromString("As"), Card.fromString("Ks"), Card.fromString("Qs"),
-            Card.fromString("Js"), Card.fromString("Ts"), Card.fromString("2h"), Card.fromString("3d"));
-        int[] enc = new int[7], idx = new int[7];
-        for (int i = 0; i < 7; i++) enc[i] = CardPrimitiveBridge.encode(cards.get(i));
-        int encoded = new FastHandEvaluator().evaluate7(enc, idx);
-        assertEquals(HandType.ROYAL_FLUSH, HandRank.decode(encoded).getType());
+        assertEquals(HandType.ROYAL_FLUSH, fast(
+            "As", "Ks", "Qs", "Js", "Ts", "2h", "3d").getType());
     }
     @Test void decodeKickersMatchHandEvaluator() {
-        List<Card> cards = List.of(
-            Card.fromString("Kh"), Card.fromString("Kd"), Card.fromString("Kc"),
-            Card.fromString("5s"), Card.fromString("5h"), Card.fromString("2c"), Card.fromString("3d"));
-        int[] enc = new int[7], idx = new int[7];
-        for (int i = 0; i < 7; i++) enc[i] = CardPrimitiveBridge.encode(cards.get(i));
-        int encoded = new FastHandEvaluator().evaluate7(enc, idx);
-        HandRank decoded = HandRank.decode(encoded);
-        HandRank expected = HandEvaluator.evaluateBestHand(cards);
-        assertEquals(expected.getType(),    decoded.getType());
-        assertEquals(expected.getKickers(), decoded.getKickers());
+        assertSameAsOracle("Kh", "Kd", "Kc", "5s", "5h", "2c", "3d");
+    }
+
+    /**
+     * La classe canonique est ordonnée à l'envers de la force : 1 = quinte flush royale.
+     * Un `>` oublié au lieu d'un `<` inverserait tous les showdowns, d'où ce garde-fou.
+     */
+    @Test void classeCanoniqueCroitQuandLaMainFaiblit() {
+        int royale  = encodeAndEval("As", "Ks", "Qs", "Js", "Ts", "2h", "3d");
+        int carre   = encodeAndEval("Ah", "Ad", "Ac", "As", "Ts", "2h", "3d");
+        int paire   = encodeAndEval("Ah", "Ad", "9c", "7s", "5s", "4h", "3d");
+        int hauteur = encodeAndEval("Ah", "Kd", "9c", "7s", "5s", "4h", "3d");
+        assertEquals(1, royale);
+        assertTrue(royale < carre, "la royale doit être la classe la plus petite");
+        assertTrue(carre < paire);
+        assertTrue(paire < hauteur);
+        assertTrue(hauteur <= 7462);
+    }
+
+    /**
+     * Régression : evaluateFlush7 gardait les 5 cartes les plus hautes de la couleur,
+     * ce qui ratait la quinte flush dès qu'il y avait 6 ou 7 cartes assorties.
+     * Lue « couleur à l'As » au lieu de « quinte flush au 9 ».
+     */
+    @Test void quinteFlushAvecSixCartesAssorties() {
+        assertSameAsOracle("Ah", "9h", "8h", "7h", "6h", "5h", "2d");
+        assertSameAsOracle("Ad", "Kd", "5d", "4d", "3d", "2d", "8h"); // roue en flush
+        assertSameAsOracle("Ac", "Kc", "Qc", "Jc", "Tc", "9c", "8c"); // 7 assorties
+    }
+
+    /** Fuzz fast vs lent : l'évaluateur objet sert d'oracle. */
+    @Test void fastConcordeAvecLOracleSurMainsAleatoires() {
+        List<Card> deck = new ArrayList<>();
+        for (Rank r : Rank.values()) for (Suit s : Suit.values()) deck.add(new Card(r, s));
+
+        FastHandEvaluator evaluator = new FastHandEvaluator();
+        Random rng = new Random(20261102L); // graine fixe : échec reproductible
+        int[] enc = new int[7];
+
+        for (int t = 0; t < 30_000; t++) {
+            Collections.shuffle(deck, rng);
+            List<Card> seven = new ArrayList<>(deck.subList(0, 7));
+            for (int i = 0; i < 7; i++) enc[i] = CardPrimitiveBridge.encode(seven.get(i));
+            HandRank attendu = HandEvaluator.evaluateBestHand(seven);
+            HandRank obtenu  = FastHandEvaluator.toHandRank(evaluator.evaluate7(enc));
+            assertEquals(attendu.getType(),    obtenu.getType(),    "type pour " + seven);
+            assertEquals(attendu.getKickers(), obtenu.getKickers(), "kickers pour " + seven);
+        }
+    }
+
+    // Helpers
+
+    private static int encodeAndEval(String... cards) {
+        int[] enc = new int[7];
+        for (int i = 0; i < 7; i++) enc[i] = CardPrimitiveBridge.encode(Card.fromString(cards[i]));
+        return new FastHandEvaluator().evaluate7(enc);
+    }
+
+    private static HandRank fast(String... cards) {
+        return FastHandEvaluator.toHandRank(encodeAndEval(cards));
+    }
+
+    private static void assertSameAsOracle(String... cards) {
+        List<Card> seven = new ArrayList<>();
+        for (String c : cards) seven.add(Card.fromString(c));
+        HandRank attendu = HandEvaluator.evaluateBestHand(seven);
+        HandRank obtenu  = fast(cards);
+        assertEquals(attendu.getType(),    obtenu.getType(),    "type pour " + seven);
+        assertEquals(attendu.getKickers(), obtenu.getKickers(), "kickers pour " + seven);
     }
 }

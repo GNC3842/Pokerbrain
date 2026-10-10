@@ -183,8 +183,17 @@ public class PokerGame {
 		Action action = this.roundManager.processAction(type, amount);
 		this.handHistory.add(action);
 
-		// Si un seul joueur reste actif -> fin de main immédiate
-		if (countActivePlayers() <= 1) {
+		/*
+		 * Fin anticipée seulement quand plus personne ne PEUT agir :
+		 *   - il ne reste qu'un joueur non couché, ou
+		 *   - tous les joueurs non couchés sont à tapis.
+		 *
+		 * L'ancienne condition `countActivePlayers() <= 1` réglait aussi la main quand il
+		 * restait un joueur actif devant un tapis adverse qu'il n'avait pas encore égalé :
+		 * ni l'un ni l'autre des deux cas ci-dessous ne s'appliquait, `handOver` restait
+		 * faux, et la mise non égalée avait déjà filé dans le pot de l'adversaire.
+		 */
+		if (getInGamePlayers().size() <= 1 || countActivePlayers() == 0) {
 			autoAwardPot();
 		}
 		return action;
@@ -198,7 +207,7 @@ public class PokerGame {
 	/**
 	 * Showdown
 	 * Résout le showdown après la river.
-	 * Distribue les pots aux gagnants selon HandEvaluator.
+	 * Distribue les pots aux gagnants selon FastHandEvaluator.
 	 */
 	public Map<Player, Integer> showdown() {
 		assertRoundComplete();
@@ -247,6 +256,15 @@ public class PokerGame {
 	
 	public int getTotalPot() {
 		return this.potManager.getTotalPot();
+	}
+
+	/**
+	 * Gains reversés aux joueurs pendant la main en cours, abattage ou fin anticipée.
+	 * Valable jusqu'au prochain startNewHand(). C'est ce que l'enregistreur doit écrire
+	 * dans la main : showdown() ne couvre que l'abattage, pas les mains gagnées par fold.
+	 */
+	public Map<Player, Integer> getWinnings() {
+		return this.potManager.getPayouts();
 	}
 	
 	public List<Action> getHandHistory(){
@@ -354,10 +372,13 @@ public class PokerGame {
 		this.potManager.collectBets(inGame);
 
 		if (inGame.size() == 1) {
-			// Cas 1 : un seul joueur restant → il remporte tous les pots
+			// Cas 1 : un seul joueur restant → il remporte tous les pots.
+			// Passer par payDirect pour que le gain soit enregistré dans la main :
+			// un addToStack muet laissait Hand.winnings vide sur toutes les mains
+			// gagnées par fold, soit la majorité.
 			Player winner = inGame.get(0);
 			for (SidePot sp : this.potManager.getFinalisedPots()) {
-				winner.addToStack(sp.getAmount());
+				this.potManager.payDirect(winner, sp.getAmount());
 			}
 			this.handOver = true;
 

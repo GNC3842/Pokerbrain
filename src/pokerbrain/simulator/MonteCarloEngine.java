@@ -9,13 +9,16 @@ import java.util.concurrent.ThreadLocalRandom;
  *
  * USAGE (une instance par thread) :
  *   MonteCarloEngine engine = new MonteCarloEngine();
- *   EquityResult r = engine.calculateEquity(heroHole, board, 10_000);
+ *   EquityResult r = engine.calculateEquity(heroHole, board, 10_000, nbOpposants);
  *
  * GARANTIES ZERO-ALLOCATION :
  *   - DeckPrimitive.ALL_ENCODED : table statique, chargée une seule fois
  *   - Tous les buffers (heroEnc, villainEnc, etc.) sont des champs d'instance
  *   - shufflePartial sur int[] en place — ThreadLocalRandom sans new Random
  *   - CardPrimitiveBridge.encode() n'est appelé qu'UNE fois par carte connue (hors boucle)
+ *   - FastHandEvaluator rend un int (classe canonique 1-7462) et ne consulte plus que
+ *     des tables primitives : l'ancienne HashMap<Integer,Integer> des mains appariées
+ *     déballait un Integer à chaque main de la boucle, la garantie était fausse.
  *
  * CONVERGENCE ADAPTATIVE :
  *   Vérification de l'intervalle de confiance (IC 95%) tous les CONVERGENCE_BLOCK tours.
@@ -35,9 +38,8 @@ public final class MonteCarloEngine {
     //Buffers alloués UNE FOIS par instance 
 
     private final int[] heroEnc = new int[7]; // encodages hero (2 hole + 5 board)
-    private final int[] heroIdx = new int[7]; // indices hero
+    private final int[] heroIdx = new int[2]; // indices des hole cards hero (cartes mortes)
     private final int[] villEnc = new int[7]; // encodages villain
-    private final int[] villIdx = new int[7]; // indices villain
     private final int[] deadIdx = new int[7]; // indices des cartes mortes connues
     private final int[] boardEnc = new int[5]; // encodages board connu
     private final int[] boardIdx = new int[5]; // indices board connu
@@ -77,7 +79,7 @@ public final class MonteCarloEngine {
      */
     public EquityResult calculateEquity(List<Card> heroHole, List<Card> board, int maxIter,
                                         int nbOpposants, VillainRange villainRange) {
-        validate(heroHole, board, maxIter);
+        validate(heroHole, board, maxIter, nbOpposants);
 
         int boardSize = board.size();
         int boardMissing = 5 - boardSize;
@@ -88,16 +90,10 @@ public final class MonteCarloEngine {
         DeckPrimitive.encodeCards(board, boardIdx, boardEnc);
 
         // Hero : hole cards déjà en place (encodeCards a écrit heroEnc[0..1])
-        // Hero : board connu
+        // Board connu, partagé hero + villain
         for (int i = 0; i < boardSize; i++) {
             heroEnc[2 + i] = boardEnc[i];
-            heroIdx[2 + i] = boardIdx[i];
-        }
-
-        // Villain : board connu (partagé)
-        for (int i = 0; i < boardSize; i++) {
             villEnc[2 + i] = boardEnc[i];
-            villIdx[2 + i] = boardIdx[i];
         }
 
         // Cartes mortes = hole cards hero + board connu
@@ -144,41 +140,36 @@ public final class MonteCarloEngine {
                 // Compléter le board (partagé hero+villain)
                 for (int b = 0; b < boardMissing; b++) {
                     int enc = deck.drawnEncoded((2*nbOpposants) + b);
-                    int id = deck.drawnIndex((2*nbOpposants) + b);
                     heroEnc[2 + boardSize + b] = enc;
-                    heroIdx[2 + boardSize + b] = id;
                     villEnc[2 + boardSize + b] = enc;
-                    villIdx[2 + boardSize + b] = id;
                 }
 
-                // Évaluation O(1) chacune
-                int hv = evaluator.evaluate7(heroEnc, heroIdx);
-                
-                int maxVillainScore = -1;
+                // Évaluation O(1) chacune. Classe canonique : la PLUS PETITE gagne.
+                int hv = evaluator.evaluate7(heroEnc);
+
+                int bestVillain = Integer.MAX_VALUE;
                 int villainTieCount = 0;
-                
+
                 for(int i=0;i<nbOpposants;i++) {
                 	// Villain hole cards
                     villEnc[0] = deck.drawnEncoded(i*2);
-                    villIdx[0] = deck.drawnIndex(i*2);
                     villEnc[1] = deck.drawnEncoded(i*2+1);
-                    villIdx[1] = deck.drawnIndex(i*2+1);
-                    
-                    int vv = evaluator.evaluate7(villEnc,villIdx);
-                    
-                    if(vv>maxVillainScore) {
-                    	maxVillainScore = vv;
+
+                    int vv = evaluator.evaluate7(villEnc);
+
+                    if(vv < bestVillain) {
+                    	bestVillain = vv;
                     	villainTieCount = 1;
-                    } else if(vv == maxVillainScore) {
+                    } else if(vv == bestVillain) {
                     	villainTieCount++;
                     }
                 }
 
-                if(hv > maxVillainScore) {
+                if(hv < bestVillain) {
                 	wins++;
                 	equitySum += 1.0;
                 }
-                else if(hv == maxVillainScore) {
+                else if(hv == bestVillain) {
                 	ties++;
                 	equitySum += 1.0 / (villainTieCount + 1);
                 }
@@ -213,7 +204,7 @@ public final class MonteCarloEngine {
     }
 
     //Validation
-    private static void validate(List<Card> heroHole, List<Card> board, int maxIter) {
+    private static void validate(List<Card> heroHole, List<Card> board, int maxIter, int nbOpposants) {
         if (heroHole == null || heroHole.size() != 2) {
         	throw new IllegalArgumentException("Hero doit avoir exactement 2 cartes");
         }
@@ -222,6 +213,10 @@ public final class MonteCarloEngine {
         }
         if (maxIter <= 0) {
         	throw new IllegalArgumentException("maxIter doit être positif");
+        }
+        // Sans adversaire le héro gagnait 100 % des itérations, silencieusement
+        if (nbOpposants < 1 || nbOpposants > 9) {
+        	throw new IllegalArgumentException("nbOpposants doit être entre 1 et 9, reçu : " + nbOpposants);
         }
     }
 

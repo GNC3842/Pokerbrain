@@ -1,85 +1,123 @@
 package pokerbrain.simulator;
 
-/*
- * Evaluateur de mains sans allocations — CactusKev O(1).
- *
- * eval5() : lookup en 3 étapes (flush, unique5, primes)
- * evaluate7() : 1 flush pass ou 21 combos non-flush
- */
+import pokerbrain.model.core.HandRank;
+import pokerbrain.model.core.Rank;
 
+import java.util.ArrayList;
+import java.util.List;
+
+/**
+ * Évaluateur de mains sans allocation — CactusKev O(1).
+ *
+ * <p>Rend la <b>classe d'équivalence canonique 1–7462</b> : <b>plus petit = plus fort</b>
+ * (1 = quinte flush royale, 7462 = 7-5-4-3-2). Deux mains se comparent donc par un simple
+ * {@code <} sur des int, sans décodage.
+ *
+ * <p>{@link #evaluate7(int[])} travaille en deux chemins :
+ * <ul>
+ *   <li><b>couleur</b> — un masque de rangs par couleur est accumulé en une passe ; dès
+ *       qu'une couleur compte 5 cartes ou plus, un seul accès à la table suffit. Avec
+ *       5 cartes assorties sur 7, aucune main non-flush ne peut faire mieux (il ne reste
+ *       que 2 cartes hors couleur, de quoi faire un brelan au mieux, jamais un full ni un
+ *       carré), donc le retour est immédiat.</li>
+ *   <li><b>non-couleur</b> — les 21 façons d'écarter 2 cartes sur 7, pré-calculées, et un
+ *       minimum sur les classes obtenues.</li>
+ * </ul>
+ *
+ * <p>Une instance porte un petit tampon : <b>une instance par thread</b>.
+ */
 public class FastHandEvaluator {
 
-    private final int[] flushBuf = new int[7]; // positions flush dans enc[]
-    private final int[] comboBuf = new int[5]; // 5 positions pour combo non-flush
+    /** Pire que toute classe réelle : valeur neutre pour un minimum. */
+    private static final int NONE = CactusKevTables.CLASS_COUNT + 1;
+
+    /**
+     * Les 21 combinaisons de 5 positions parmi 7, à plat (21 × 5 = 105).
+     * Pré-calculées pour ne pas reconstruire le complément de {i,j} à chaque tour
+     * de la boucle chaude.
+     */
+    private static final int[] COMBOS_7_CHOOSE_5 = buildCombos();
+
+    /** Masque de rangs par couleur, réutilisé d'un appel à l'autre. */
+    private final int[] suitRanks = new int[4];
 
     public FastHandEvaluator() {}
 
-    public int evaluate7(int[] enc, int[] idx) {
-        int flushSuit = detectFlushSuit(enc);
-        if (flushSuit != 0) {
-            return evaluateFlush7(enc, flushSuit);
-        } else {
-            return evaluateNonFlush7(enc);
-        }
-    }
-
-    private static int detectFlushSuit(int[] enc) {
-        int cC = 0, cD = 0, cH = 0, cS = 0;
+    /**
+     * Classe canonique de la meilleure main de 5 cartes parmi les 7 encodées.
+     *
+     * @param enc 7 cartes encodées par {@link CardPrimitiveBridge#encode}
+     * @return classe dans 1–7462, la plus petite étant la plus forte
+     */
+    public int evaluate7(int[] enc) {
+        suitRanks[0] = 0; suitRanks[1] = 0; suitRanks[2] = 0; suitRanks[3] = 0;
         for (int i = 0; i < 7; i++) {
-            int s = enc[i] & CardPrimitiveBridge.MASK_SUIT;
-            if      (s == CardPrimitiveBridge.SUIT_CLUBS)    cC++;
-            else if (s == CardPrimitiveBridge.SUIT_DIAMONDS) cD++;
-            else if (s == CardPrimitiveBridge.SUIT_HEARTS)   cH++;
-            else                                              cS++;
+            int card = enc[i];
+            int suit = Integer.numberOfTrailingZeros(card & CardPrimitiveBridge.MASK_SUIT)
+                     - CardPrimitiveBridge.SHIFT_SUIT;
+            suitRanks[suit] |= card >>> CardPrimitiveBridge.SHIFT_RANK_BIT;
         }
-        if (cC >= 5) return CardPrimitiveBridge.SUIT_CLUBS;
-        if (cD >= 5) return CardPrimitiveBridge.SUIT_DIAMONDS;
-        if (cH >= 5) return CardPrimitiveBridge.SUIT_HEARTS;
-        if (cS >= 5) return CardPrimitiveBridge.SUIT_SPADES;
-        return 0;
+        for (int suit = 0; suit < 4; suit++) {
+            int mask = suitRanks[suit];
+            if (Integer.bitCount(mask) >= 5) {
+                return CactusKevTables.FLUSHES[mask];
+            }
+        }
+        return evaluateNonFlush7(enc);
     }
 
-    private int evaluateFlush7(int[] enc, int flushSuit) {
-        int n = 0;
-        for (int i = 0; i < 7; i++) {
-            if ((enc[i] & CardPrimitiveBridge.MASK_SUIT) == flushSuit) {
-                flushBuf[n++] = i;
-            }
-        }
-        // Insertion sort descending by rank index (bits 8-11 of enc)
-        for (int i = 1; i < n; i++) {
-            int key = flushBuf[i], keyR = (enc[key] >> 8) & 0xf, j = i - 1;
-            while (j >= 0 && ((enc[flushBuf[j]] >> 8) & 0xf) < keyR) {
-                flushBuf[j + 1] = flushBuf[j]; j--;
-            }
-            flushBuf[j + 1] = key;
-        }
-        return eval5(enc, flushBuf[0], flushBuf[1], flushBuf[2], flushBuf[3], flushBuf[4]);
-    }
-
-    private int evaluateNonFlush7(int[] enc) {
-        int best = 0;
-        for (int i = 0; i < 6; i++) {
-            for (int j = i + 1; j < 7; j++) {
-                int pos = 0;
-                for (int k = 0; k < 7; k++) {
-                    if (k != i && k != j) comboBuf[pos++] = k;
-                }
-                int v = eval5(enc, comboBuf[0], comboBuf[1], comboBuf[2], comboBuf[3], comboBuf[4]);
-                if (v > best) best = v;
-            }
+    private static int evaluateNonFlush7(int[] enc) {
+        int best = NONE;
+        for (int c = 0; c < COMBOS_7_CHOOSE_5.length; c += 5) {
+            int v = eval5(enc,
+                COMBOS_7_CHOOSE_5[c],     COMBOS_7_CHOOSE_5[c + 1], COMBOS_7_CHOOSE_5[c + 2],
+                COMBOS_7_CHOOSE_5[c + 3], COMBOS_7_CHOOSE_5[c + 4]);
+            if (v < best) best = v;
         }
         return best;
     }
 
+    /**
+     * Classe d'une main de 5 cartes connue non-flush.
+     * UNIQUE5 ne vaut 0 que si le masque n'a pas 5 bits distincts, c'est-à-dire si la
+     * main est appariée : on bascule alors sur le produit des nombres premiers de rang.
+     */
     private static int eval5(int[] enc, int a, int b, int c, int d, int e) {
-        int q = (enc[a] | enc[b] | enc[c] | enc[d] | enc[e]) >> 16;
-        if ((enc[a] & enc[b] & enc[c] & enc[d] & enc[e] & 0xf000) != 0)
-            return CactusKevTables.FLUSHES[q];
-        int s = CactusKevTables.UNIQUE5[q];
-        if (s != 0) return s;
-        int prod = (enc[a] & 0xff) * (enc[b] & 0xff) * (enc[c] & 0xff)
-                 * (enc[d] & 0xff) * (enc[e] & 0xff);
-        return CactusKevTables.PRIMES_MAP.get(prod);
+        int mask = (enc[a] | enc[b] | enc[c] | enc[d] | enc[e])
+                 >>> CardPrimitiveBridge.SHIFT_RANK_BIT;
+        int distinct = CactusKevTables.UNIQUE5[mask];
+        if (distinct != 0) return distinct;
+        return CactusKevTables.paired(
+              (enc[a] & 0xff) * (enc[b] & 0xff) * (enc[c] & 0xff)
+            * (enc[d] & 0xff) * (enc[e] & 0xff));
+    }
+
+    /**
+     * Reconstruit un {@link HandRank} affichable depuis une classe canonique
+     * (« Full aux Rois »). Hors boucle chaude : alloue.
+     */
+    public static HandRank toHandRank(int rankClass) {
+        if (rankClass < 1 || rankClass > CactusKevTables.CLASS_COUNT) {
+            throw new IllegalArgumentException("Classe hors bornes : " + rankClass);
+        }
+        int packed = CactusKevTables.CLASS_RANKS[rankClass];
+        List<Rank> kickers = new ArrayList<>(5);
+        for (int shift = 16; shift >= 0; shift -= 4) {
+            kickers.add(Rank.fromValue((packed >>> shift) & 0xf));
+        }
+        return new HandRank(CactusKevTables.CLASS_TYPE[rankClass], kickers);
+    }
+
+    private static int[] buildCombos() {
+        int[] combos = new int[21 * 5];
+        int n = 0;
+        for (int i = 0; i < 6; i++) {
+            for (int j = i + 1; j < 7; j++) {
+                for (int k = 0; k < 7; k++) {
+                    if (k != i && k != j) combos[n++] = k;
+                }
+            }
+        }
+        return combos;
     }
 }

@@ -133,15 +133,23 @@ public class Player {
 		this.holeCards = new ArrayList<>();
 	}
 	
-	//AJouter des jetons a la stack
+	/**
+	 * Ajouter des jetons à la stack.
+	 *
+	 * Ne change JAMAIS le statut. Un joueur à tapis qui récupère des jetons en cours de
+	 * main — sa mise non égalée, ou un pot qu'aucun adversaire vivant ne peut contester —
+	 * reste à tapis : il a déjà engagé tout ce qu'il avait, il n'a plus de décision à
+	 * prendre sur cette main. C'est `resetForNewHand()` qui le remet ACTIVE, et lui seul.
+	 *
+	 * Rendre ici le statut ACTIVE lui redonnait la parole : il pouvait miser puis SE
+	 * COUCHER après être allé à tapis, ce qui offrait le pot principal à l'adversaire
+	 * sans abattage.
+	 */
 	public void addToStack(int amount) {
 		if (amount < 0) {
 			throw new IllegalArgumentException("Amount ne peut pas etre négatif");
 		}
 		this.stack = this.stack + amount;
-		if(this.getStatus() == PlayerStatus.ALL_IN && this.stack > 0) {
-			this.setStatus(PlayerStatus.ACTIVE);
-		}
 	}
 	
 	//Retirer des jetons à la stack
