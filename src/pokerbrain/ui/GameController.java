@@ -398,7 +398,10 @@ public class GameController {
         if (canRaise || canBet) {
             Player heroPlayer = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
             int minR = session.getGame().getMinRaiseTo();
-            int maxR = heroPlayer.getStack();
+            // Le slider porte un TOTAL à atteindre sur la street. Le plafond n'est donc pas
+            // le tapis mais « ce qui est déjà engagé + le tapis » : relancer *à* `stack`
+            // coûte `callAmount + (stack - currentBetLevel)`, soit plus que le tapis.
+            int maxR = heroPlayer.getCurrentBet() + heroPlayer.getStack();
             raiseSlider.setDisable(false);
             raiseSlider.setMin(minR);
             raiseSlider.setMax(Math.max(minR, maxR));
