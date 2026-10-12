@@ -69,7 +69,11 @@ public class BettingRoundManager {
                 if (amount < this.bigBlind)
                     throw new IllegalArgumentException(
                         "Bet minimum = big blind (" + this.bigBlind + "), reçu : " + amount);
-                actualAmount = Math.min(amount, current.getStack());
+                // `amount` est un TOTAL à atteindre sur la street, comme pour RAISE.
+                // BET n'est proposé que quand personne n'a misé (currentBetLevel == 0),
+                // donc la mise déjà engagée est nulle et le delta égale le total — la
+                // soustraction est là pour que la convention reste vraie si ça change.
+                actualAmount = Math.min(amount - current.getCurrentBet(), current.getStack());
                 this.potManager.addBet(current, actualAmount);
                 this.lastRaiseAmount = actualAmount;
                 this.currentBetLevel = this.potManager.getHighestBet();
@@ -193,10 +197,18 @@ public class BettingRoundManager {
         if (callAmount > 0 && stack > callAmount) {
         	valid.add(ActionType.CALL);
         }
-        if (callAmount == 0 && stack >= this.bigBlind) {
+        /*
+         * BET ouvre l'enchère, RAISE la relance, et les deux prennent un TOTAL à
+         * atteindre sur la street. Le partage se fait donc sur `currentBetLevel`, pas sur
+         * `callAmount` : la BB preflop ne doit rien (callAmount == 0) alors qu'une mise de
+         * 10 est déjà en jeu. En lui proposant BET, son « je relance à 20 » ajoutait 20 à
+         * ses 10 et la mettait à 30. Elle reçoit maintenant RAISE, dont le minimum
+         * (`getMinRaiseTo`) tient compte de ce qu'elle a déjà engagé.
+         */
+        if (this.currentBetLevel == 0 && stack >= this.bigBlind) {
         	valid.add(ActionType.BET);
         }
-        if (callAmount > 0 && canReRaise
+        if (this.currentBetLevel > 0 && canReRaise
         		&& stack >= callAmount + (minRaiseTo - this.currentBetLevel)) {
         	valid.add(ActionType.RAISE);
         }
