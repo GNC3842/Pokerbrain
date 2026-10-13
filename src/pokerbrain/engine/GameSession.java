@@ -33,7 +33,10 @@ public final class GameSession {
 
     public void startNewHand() {
         game.startNewHand();
-        currentRecord = new HandRecord(game, "hero");
+        // L'id du héro vient du siège choisi, jamais de la constante "hero" : avec un autre
+        // id, la main enregistrée portait un heroId introuvable et HandAnalyser rendait une
+        // liste de conseils vide, sans erreur.
+        currentRecord = new HandRecord(game, game.getPlayers().get(heroPlayerIndex).getId());
     }
 
     public Action applyAction(ActionType type, int amount) {
@@ -53,16 +56,43 @@ public final class GameSession {
         return hand;
     }
 
+    /**
+     * Clôt la main en reprenant les gains que le moteur a réellement distribués.
+     * Appelée sur les fins anticipées (fold général, tous à tapis), où l'appelant n'a
+     * pas de map à fournir : passer `null` enregistrait la main sans aucun gain.
+     */
     public Hand buildAndCloseHand() {
-        return buildAndCloseHand(null);
+        return buildAndCloseHand(game.getWinnings());
     }
 
     public Action decideBotAction(Bot bot, Player current) {
         int activeOpp = (int) game.getPlayers().stream()
             .filter(p -> !p.isFolded() && !p.isOut() && !p.getId().equals(current.getId()))
             .count();
-        return bot.decide(game.getCurrentRound(), current, new ArrayList<>(game.getBoard()),
-            game.getTotalPot(), game.getCurrentBetLevel(), bigBlind, game.getValidActions(), activeOpp);
+        Action decision = bot.decide(game.getCurrentRound(), current,
+            new ArrayList<>(game.getBoard()), game.getTotalPot(), game.getCurrentBetLevel(),
+            bigBlind, game.getValidActions(), activeOpp);
+        return clampBetAmount(decision, current);
+    }
+
+    /**
+     * Ramène le montant d'une mise de bot dans l'intervalle légal
+     * [`getMinRaiseTo()`, mise engagée + tapis] — un total à atteindre sur la street.
+     *
+     * Le bot dimensionne au pot (`totalPot * 0.55 + currentBetLevel`) et passe sous le
+     * minimum de relance dès qu'un adversaire a surmisé. `BettingRoundManager` levait,
+     * l'exception était avalée par `GameController.applyBotAction` qui rappelait
+     * `processTurn()` sans que le bot ait agi : même joueur, même décision déterministe,
+     * la partie tournait en rond. Un seul point de bornage ici couvre tous les profils.
+     */
+    private Action clampBetAmount(Action decision, Player bot) {
+        if (decision.getType() != ActionType.BET && decision.getType() != ActionType.RAISE)
+            return decision;
+        int min = game.getMinRaiseTo();
+        int max = bot.getCurrentBet() + bot.getStack();
+        int bounded = Math.max(min, Math.min(decision.getAmount(), max));
+        if (bounded == decision.getAmount()) return decision;
+        return new Action(bot, decision.getType(), bounded, decision.getRound());
     }
 
     public int countActiveOpponents() {
