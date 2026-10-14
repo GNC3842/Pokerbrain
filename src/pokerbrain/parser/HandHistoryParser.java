@@ -92,29 +92,99 @@ public final class HandHistoryParser{
     builder.board(board);
 
     parseShowdown(sections.getOrDefault("SHOWDOWN", Collections.emptyList()), builder);
-    reconstructGameStates(builder.getActions(), board, builder.getSmallBlind(), builder.getBigBlind(), builder);
+    reconstructGameStates(builder.getActions(), players, board,
+                          builder.getSmallBlind(), builder.getBigBlind(), builder);
     Debug.log(() -> "[Parser] Fin du parsing du bloc");
     return builder.build();
   }
 
-  // Reconstruit un GameState par action en accumulant les mises depuis les blindes.
-  // Fournit au minimum le pot courant et le board, ce qui suffit au ReplayController.
-  private static void reconstructGameStates(List<Action> actions, List<Card> fullBoard,
+  /**
+   * Rejoue la main pour reconstruire un GameState complet par action.
+   *
+   * Pourquoi rejouer plutôt qu'écrire plus de choses dans le fichier : tapis, mises et
+   * statuts se **déduisent** des tapis initiaux, des blindes et des montants d'action, tous
+   * déjà sérialisés. Rien à ajouter au format, rien à resynchroniser entre writer et parser.
+   *
+   * Ce qui manquait rendait l'analyseur muet sur les mains relues du disque — c'est-à-dire
+   * sur toutes : sans `players` ni `currentBetLevel`, `ActionContext.betLevel` valait 0,
+   * `facingBet()` était toujours faux, et toute la branche « face à une mise » de
+   * `HandAnalyser` ne s'exécutait jamais (SPR nul, multiway invisible, sizing à 0).
+   *
+   * Les `Player` passés ici sont les objets du parsing : ils sont mutés au fil du rejeu,
+   * comme ils le sont en partie réelle. Les `initialStates` ont déjà été figés avant.
+   */
+  private static void reconstructGameStates(List<Action> actions, List<Player> players,
+                                             List<Card> fullBoard,
                                              int sb, int bb, Hand.Builder builder) {
-    int pot = sb + bb;
-    for (Action action : actions) {
-      if (action.getType().involvesMoney()) {
-        pot += action.getAmount();
-      }
-      List<Card> boardAtRound = boardForRound(fullBoard, action.getRound());
-      GameState gs = new GameState.Builder()
-          .round(action.getRound())
-          .board(boardAtRound)
-          .totalPot(pot)
-          .lastAction(action)
-          .build();
-      builder.addGameState(gs);
+    int pot = postBlinds(players, sb, bb);
+    int betLevel = 0;
+    for (Player p : players) {
+      betLevel = Math.max(betLevel, p.getCurrentBet());
     }
+
+    BettingRound round = BettingRound.PREFLOP;
+    for (Action action : actions) {
+      // Changement de street : les mises de la street précédente sont déjà dans le pot
+      if (action.getRound() != round) {
+        round = action.getRound();
+        for (Player p : players) p.setCurrentBet(0);
+        betLevel = 0;
+      }
+
+      Player actor = action.getPlayer();
+      if (action.getType() == ActionType.FOLD) {
+        actor.setStatus(PlayerStatus.FOLDED);
+      } else if (action.getType().involvesMoney()) {
+        // getAmount() est un delta : ce que l'action ajoute au pot, pas un total à atteindre
+        int delta = Math.min(action.getAmount(), actor.getStack());
+        actor.removeFromStack(delta);
+        actor.setCurrentBet(actor.getCurrentBet() + delta);
+        betLevel = Math.max(betLevel, actor.getCurrentBet());
+        pot += delta;
+      }
+
+      List<PlayerState> states = new ArrayList<>();
+      for (Player p : players) states.add(PlayerState.of(p));
+
+      builder.addGameState(new GameState.Builder()
+          .round(round)
+          .board(boardForRound(fullBoard, round))
+          .totalPot(pot)
+          .players(states)
+          .currentBetLevel(betLevel)
+          .lastAction(action)
+          .build());
+    }
+  }
+
+  /**
+   * Replace les blindes, qui ne sont pas des `Action` et n'apparaissent donc pas dans le
+   * fichier. Même règle que `ActionContext.blindOf` : en heads-up sans siège SB, c'est le
+   * BTN qui poste la petite blinde. Retourne le pot ainsi constitué.
+   *
+   * Seule la mise de street est posée, **pas** un retrait du tapis : le `Stack` écrit dans
+   * la section PLAYERS vient du snapshot initial de `HandRecord`, pris après
+   * `PokerGame.startNewHand()` — il est donc déjà net des blindes. Les redéduire ici
+   * appauvrissait les blindes d'une blinde dans tous les snapshots.
+   */
+  private static int postBlinds(List<Player> players, int sb, int bb) {
+    boolean hasSmallBlindSeat = players.stream().anyMatch(p -> p.getPosition() == Position.SB);
+    boolean headsUp = players.size() == 2 && !hasSmallBlindSeat;
+    int pot = 0;
+    for (Player p : players) {
+      Position pos = p.getPosition();
+      int blind = 0;
+      if (pos == Position.BB) {
+        blind = bb;
+      } else if (pos == Position.SB || (headsUp && pos == Position.BTN)) {
+        blind = sb;
+      }
+      if (blind > 0) {
+        p.setCurrentBet(blind);
+        pot += blind;
+      }
+    }
+    return pot;
   }
 
   private static List<Card> boardForRound(List<Card> fullBoard, BettingRound round) {

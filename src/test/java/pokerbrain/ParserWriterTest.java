@@ -79,6 +79,67 @@ public class ParserWriterTest {
             assertTrue(gs.getTotalPot() >= original.getSmallBlind() + original.getBigBlind()));
     }
 
+    /**
+     * L'état de table relu doit être celui qui a été joué.
+     *
+     * C'est la condition d'existence de l'analyse en production : toutes les mains
+     * analysées viennent du disque, et sans `players` ni `currentBetLevel` dans les
+     * snapshots, `ActionContext` voyait un `betLevel` à 0 — donc jamais de mise à
+     * affronter, un SPR nul et aucun jugement de sizing.
+     */
+    @Test void etatDeTableIdentiqueApresRelecture() throws Exception {
+        List<Player> players = new ArrayList<>(List.of(
+            new Player("p0", "Alice", 200),
+            new Player("p1", "Bob",   200),
+            new Player("p2", "Chloe", 200)
+        ));
+        PokerGame game = new PokerGame(players, 1, 2);
+        game.startNewHand();
+        HandRecord rec = new HandRecord(game, "p0");
+
+        // Preflop : une relance, puis tout le monde suit
+        rec.recordAction(game.applyAction(ActionType.RAISE, game.getMinRaiseTo()));
+        while (!game.isRoundComplete()) rec.recordAction(game.applyAction(ActionType.CALL));
+        // Flop : une mise, puis tout le monde suit
+        game.dealFlop();
+        rec.recordAction(game.applyAction(ActionType.BET, 6));
+        while (!game.isRoundComplete()) rec.recordAction(game.applyAction(ActionType.CALL));
+        // Turn et river : tout le monde checke
+        game.dealTurn();
+        while (!game.isRoundComplete()) rec.recordAction(game.applyAction(ActionType.CHECK));
+        game.dealRiver();
+        while (!game.isRoundComplete()) rec.recordAction(game.applyAction(ActionType.CHECK));
+
+        Hand original = rec.buildHand(game.showdown());
+        Hand parsed = HandHistoryParser.parseString(HandHistoryWriter.serialize(original));
+
+        assertEquals(original.getGameStates().size(), parsed.getGameStates().size());
+        for (int i = 0; i < original.getGameStates().size(); i++) {
+            GameState attendu = original.getGameStates().get(i);
+            GameState relu    = parsed.getGameStates().get(i);
+            String ou = "snapshot " + i + " (" + attendu.getRound() + ")";
+
+            assertEquals(attendu.getTotalPot(), relu.getTotalPot(), ou + " : pot");
+            assertEquals(attendu.getCurrentBetLevel(), relu.getCurrentBetLevel(), ou + " : mise à égaler");
+            assertEquals(attendu.getBoard().size(), relu.getBoard().size(), ou + " : board");
+            assertEquals(attendu.getPlayers().size(), relu.getPlayers().size(), ou + " : joueurs");
+
+            for (PlayerState avant : attendu.getPlayers()) {
+                PlayerState apres = relu.getPlayers().stream()
+                    .filter(ps -> ps.getId().equals(avant.getId())).findFirst().orElseThrow();
+                assertEquals(avant.getStack(), apres.getStack(), ou + " : tapis de " + avant.getId());
+                assertEquals(avant.getStatus(), apres.getStatus(), ou + " : statut de " + avant.getId());
+                // La mise de street n'est comparée que sur les joueurs encore en jeu :
+                // collectBets ne remet à zéro que les non-couchés, donc un joueur couché
+                // traîne en partie réelle une mise périmée que personne ne lit.
+                if (avant.getStatus() != PlayerStatus.FOLDED) {
+                    assertEquals(avant.getCurrentbet(), apres.getCurrentbet(),
+                        ou + " : mise engagée de " + avant.getId());
+                }
+            }
+        }
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private Hand sample() {
