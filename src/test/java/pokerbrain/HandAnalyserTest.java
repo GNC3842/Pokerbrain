@@ -4,7 +4,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import pokerbrain.analyser.ActionAdvice;
 import pokerbrain.analyser.HandAnalyser;
+import pokerbrain.engine.PokerGame;
 import pokerbrain.model.core.Card;
+import pokerbrain.parser.HandHistoryParser;
+import pokerbrain.parser.HandHistoryWriter;
 import pokerbrain.model.game.*;
 import pokerbrain.model.history.*;
 
@@ -23,6 +26,40 @@ public class HandAnalyserTest {
     private static HandAnalyser analyser;
 
     @BeforeAll static void setup() { analyser = new HandAnalyser(); }
+
+    /**
+     * Bout en bout sur une main passée par le disque : c'est le seul chemin qui existe en
+     * production, et le seul que les autres tests ne couvraient pas (ils fabriquent les
+     * `GameState` à la main). Le parser ne reconstruisait ni les joueurs ni la mise à
+     * égaler, donc `facingBet()` était toujours faux : la branche « face à une mise » de
+     * `HandAnalyser` — 115 lignes, cote du pot, outs, fold equity — ne tournait jamais.
+     */
+    @Test void uneMainRelueDuDisqueVoitLaMiseAdverse() throws Exception {
+        List<Player> joueurs = new ArrayList<>(List.of(
+            new Player("p0", "Hero", 200), new Player("p1", "Vilain", 200)));
+        PokerGame partie = new PokerGame(joueurs, 1, 2);
+        partie.startNewHand();
+
+        // En heads-up, le BTN parle le premier au preflop et le dernier au flop
+        String heroId = partie.getCurrentPlayer().getId();
+        HandRecord enregistreur = new HandRecord(partie, heroId);
+        enregistreur.recordAction(partie.applyAction(ActionType.RAISE, partie.getMinRaiseTo()));
+        enregistreur.recordAction(partie.applyAction(ActionType.CALL));
+        partie.dealFlop();
+        enregistreur.recordAction(partie.applyAction(ActionType.BET, 6)); // la BB ouvre
+        enregistreur.recordAction(partie.applyAction(ActionType.CALL));   // le héro paie
+
+        Hand relue = HandHistoryParser.parseString(
+            HandHistoryWriter.serialize(enregistreur.buildHand()));
+
+        ActionAdvice auFlop = analyser.analyse(relue).stream()
+            .filter(a -> a.getRound() == BettingRound.FLOP).findFirst().orElseThrow();
+
+        assertTrue(auFlop.isAnalysable(), "l'action du héro au flop aurait dû être analysée");
+        assertTrue(auFlop.getPotOdds() > 0,
+            "cote du pot nulle : le héro paie une mise de 6 et l'analyseur ne la voit pas");
+        assertTrue(auFlop.getSpr() > 0, "SPR nul : les tapis ne sont pas remontés du disque");
+    }
 
     /**
      * Sans GameState (cas d'une main rechargée depuis le disque), l'analyseur retombait
