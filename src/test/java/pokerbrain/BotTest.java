@@ -20,6 +20,18 @@ public class BotTest {
         ActionType a = decide("9h","6c", Position.BTN, BotProfileFactory.createCallingStation());
         assertNotEquals(ActionType.RAISE, a);
     }
+    /**
+     * Les blindes ont leurs propres heatmaps. Le repli SB→BTN / BB→CO leur faisait jouer
+     * la range d'une position de fin : les deux mains ci-dessous étaient couchées.
+     */
+    @Test void lesBlindesJouentLeursPropresRanges() {
+        BotProfile tag = BotProfileFactory.createTightAggressive();
+        // 76s : ouverture SB (tag_sb.csv), absente de la range BTN
+        assertEquals(ActionType.RAISE, decide("7h", "6h", Position.SB, tag));
+        // J8s : défense BB face à un open (tag_bb_vs_open.csv), absente de la range CO
+        assertEquals(ActionType.CALL, decide("Jh", "8h", Position.BB, tag));
+    }
+
     @Test void nullIdThrows() { assertThrows(IllegalArgumentException.class, () -> new Bot(null, BotProfileFactory.createTightAggressive())); }
     @Test void neverInvalidAction() {
         Bot bot = new Bot("t", BotProfileFactory.createTightAggressive());
