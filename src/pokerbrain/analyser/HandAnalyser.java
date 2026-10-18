@@ -202,6 +202,25 @@ public class HandAnalyser {
 		}
 
 		String context = preflopContext(ctx, raiseLevel, limpers);
+		double equity = preflopEquity(hole, ctx, raiseLevel);
+
+		/*
+		 * EV perdue, en BB, convention de `ActionAdvice.evDelta` : 0 sur un coup optimal,
+		 * positive sur une erreur, -1 quand elle n'est pas chiffrable.
+		 *
+		 * Au preflop la seule EV calculable sans modéliser une relance est celle du call :
+		 * se coucher vaut 0, payer vaut `équité × (pot + à payer) − à payer`. Elle couvre
+		 * les deux erreurs qui s'y ramènent — coucher un call profitable, payer un call
+		 * perdant. Les écarts qui demanderaient le résultat d'une relance (CALL au lieu de
+		 * RAISE, open mal dimensionné) restent à -1 : mieux vaut pas de chiffre qu'un
+		 * chiffre inventé.
+		 */
+		double callEV = (equity >= 0 && ctx.callAmount() > 0)
+			? PotOddsCalculator.callEV(equity, ctx.totalPot, ctx.callAmount())
+			: Double.NaN;
+		int bb = Math.max(1, ctx.bigBlind);
+		double evPerdueSiFold = Double.isNaN(callEV) ? -1 : Math.max(0, callEV) / bb;
+		double evPerdueSiCall = Double.isNaN(callEV) ? -1 : Math.max(0, -callEV) / bb;
 
 		ActionAdvice.Builder builder = new ActionAdvice.Builder()
 			.actionIndex(index)
@@ -212,7 +231,7 @@ public class HandAnalyser {
 			.recommended(reference)
 			.recommendedAmount(recommendedAmount)
 			.context(context)
-			.equity(preflopEquity(hole, ctx, raiseLevel));
+			.equity(equity);
 
 		String head = handName + " en " + pos + " (" + context + ") — ";
 
@@ -226,7 +245,7 @@ public class HandAnalyser {
 						+ "Checker l'option laisse partir de la valeur.")
 					.build();
 			}
-			return builder.score(100)
+			return builder.score(100).evDelta(0)
 				.reasoning(head + "option prise gratuitement. Rien à payer, rien à risquer : "
 					+ "c'est le bon réflexe avec une main qui ne mérite pas de relance.")
 				.build();
@@ -244,7 +263,7 @@ public class HandAnalyser {
 			if (normalized == ActionType.RAISE) {
 				return judgePreflopSizing(builder, head, raiseTo, recommendedAmount, ctx, raiseLevel);
 			}
-			return builder.score(100)
+			return builder.score(100).evDelta(0)
 				.reasoning(head + "action conforme au jeu TAG optimal.")
 				.build();
 		}
@@ -257,12 +276,14 @@ public class HandAnalyser {
 		}
 		if (reference == ActionType.RAISE && normalized == ActionType.FOLD) {
 			return builder.score(25)
+				.evDelta(evPerdueSiFold)
 				.reasoning(head + "cette main est assez forte pour être relancée ici. "
 					+ "Le FOLD fait perdre de la valeur attendue.")
 				.build();
 		}
 		if (reference == ActionType.CALL && normalized == ActionType.FOLD) {
 			return builder.score(50)
+				.evDelta(evPerdueSiFold)
 				.reasoning(head + "cette main méritait un CALL. "
 					+ "Même si elle n'est pas assez forte pour relancer, elle a suffisamment de potentiel.")
 				.build();
@@ -272,6 +293,7 @@ public class HandAnalyser {
 				? "Payer un 3-bet avec une main dominée est l'une des fuites les plus coûteuses du preflop."
 				: "Le CALL preflop avec des mains marginales coûte cher sur le long terme.";
 			return builder.score(35)
+				.evDelta(evPerdueSiCall)
 				.reasoning(head + "cette main est trop faible pour être jouée profitablement ici. " + extra)
 				.build();
 		}
@@ -296,7 +318,8 @@ public class HandAnalyser {
 	private ActionAdvice judgePreflopSizing(ActionAdvice.Builder builder, String head,
 											int raiseTo, int recommended, ActionContext ctx, int raiseLevel) {
 		if (recommended <= 0 || raiseTo <= 0) {
-			return builder.score(100).reasoning(head + "action conforme au jeu TAG optimal.").build();
+			return builder.score(100).evDelta(0)
+				.reasoning(head + "action conforme au jeu TAG optimal.").build();
 		}
 		double ecart = (raiseTo - recommended) / (double) recommended;
 		String taille = String.format("%.1f BB", raiseTo / (double) ctx.bigBlind);
@@ -317,7 +340,7 @@ public class HandAnalyser {
 				.build();
 		}
 		String suffixe = (raiseLevel == 0) ? "open" : "relance";
-		return builder.score(100)
+		return builder.score(100).evDelta(0)
 			.reasoning(head + "action conforme au jeu TAG optimal, " + suffixe + " bien dimensionné (" + taille + ").")
 			.build();
 	}
@@ -336,13 +359,13 @@ public class HandAnalyser {
 				.build();
 		}
 		if (stackBB > 0 && stackBB <= SHOVE_MAX_BB) {
-			return builder.score(95)
+			return builder.score(95).evDelta(0)
 				.reasoning(head + "tapis à " + profondeur + " : à cette profondeur le tapis est "
 					+ "la relance standard, il n'y a plus de place pour jouer postflop. Bien joué.")
 				.build();
 		}
 		if (raiseLevel >= 3 && tier >= 4) {
-			return builder.score(95)
+			return builder.score(95).evDelta(0)
 				.reasoning(head + "tapis face à un 4-bet avec une main premium : "
 					+ "c'est exactement le spot où mettre " + profondeur + " en jeu.")
 				.build();
@@ -425,7 +448,7 @@ public class HandAnalyser {
 				   .recommendedAmount((int) Math.round((pot + callAmount) * 0.7));
 
 			if (played == ActionType.RAISE || played == ActionType.ALL_IN) {
-				return builder.score(100)
+				return builder.score(100).evDelta(0)
 					.reasoning(head + "équité " + eqStr + " — RAISE pour value. "
 						+ "Avec une main aussi forte, maximiser la valeur est optimal. Bien joué !")
 					.build();
@@ -452,7 +475,7 @@ public class HandAnalyser {
 				String tirage = draws.hasFlushDraw() || draws.hasOpenEnded()
 					? " Votre " + draws.describe() + " (" + draws.total() + " outs) justifie de payer."
 					: "";
-				return builder.score(100)
+				return builder.score(100).evDelta(0)
 					.reasoning(head + "équité " + eqStr + " vs cote requise " + beStr
 						+ " — CALL correct et profitable (EV : " + evStr + ")." + tirage)
 					.build();
@@ -486,7 +509,7 @@ public class HandAnalyser {
 		builder.recommended(ActionType.FOLD);
 
 		if (played == ActionType.FOLD) {
-			return builder.score(100)
+			return builder.score(100).evDelta(0)
 				.reasoning(head + "équité " + eqStr + " vs cote requise " + beStr
 					+ " — FOLD correct. Le call aurait une EV négative (" + evStr + ").")
 				.build();
@@ -558,7 +581,7 @@ public class HandAnalyser {
 					? " Avec un SPR de " + String.format("%.1f", ctx.spr())
 					  + ", le pot est déjà gros par rapport aux tapis : checker garde la main jouable."
 					: "";
-				return builder.score(90)
+				return builder.score(90).evDelta(0)
 					.reasoning(head + "équité " + eqStr + " — CHECK pour contrôler la taille du pot. "
 						+ "Avec une main moyenne, éviter de gonfler le pot est prudent." + sprNote)
 					.build();
@@ -570,14 +593,15 @@ public class HandAnalyser {
 						+ "Le risque est de se faire relancer et de devoir abandonner.")
 					.build();
 			}
-			return builder.score(100).reasoning(head + "équité " + eqStr + " — action acceptable.").build();
+			return builder.score(100).evDelta(0)
+				.reasoning(head + "équité " + eqStr + " — action acceptable.").build();
 		}
 
 		// Main faible
 		builder.recommended(ActionType.CHECK);
 
 		if (played == ActionType.CHECK) {
-			return builder.score(100)
+			return builder.score(100).evDelta(0)
 				.reasoning(head + "équité " + eqStr + " — CHECK correct avec une main faible. "
 					+ "Pas de raison de miser sans équité suffisante.")
 				.build();
@@ -624,7 +648,7 @@ public class HandAnalyser {
 					+ "à une mise de " + recommended + " jetons.")
 				.build();
 		}
-		return builder.score(100)
+		return builder.score(100).evDelta(0)
 			.reasoning(head + "équité " + eqStr + " — BET pour value à " + taille + ", bien joué. "
 				+ "Avec cette force de main, miser extrait de la valeur des mains plus faibles.")
 			.build();
@@ -826,7 +850,15 @@ public class HandAnalyser {
 		if (ctx.stackInBigBlinds() > 0) {
 			sb.append(String.format(", %.0f BB de tapis", ctx.stackInBigBlinds()));
 		}
+		sb.append(joueursDerriere(ctx));
 		return sb.toString();
+	}
+
+	//Qui parle encore derrière : change la lecture d'un open comme d'un c-bet
+	private static String joueursDerriere(ActionContext ctx) {
+		if (ctx.playersBehind <= 0) return "";
+		return ", " + ctx.playersBehind
+			+ (ctx.playersBehind > 1 ? " joueurs derrière" : " joueur derrière");
 	}
 
 	private static String postflopContext(ActionContext ctx, DrawAnalyser.Draws draws, String role) {
@@ -844,6 +876,7 @@ public class HandAnalyser {
 		if (role != null) {
 			sb.append(", ").append(role);
 		}
+		sb.append(joueursDerriere(ctx));
 		return sb.toString();
 	}
 
