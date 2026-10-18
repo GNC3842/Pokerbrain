@@ -189,6 +189,70 @@ public class HandAnalyserTest {
             "le contexte doit mentionner le 3-bet, obtenu : " + advice.getContext());
     }
 
+    /**
+     * Détail structuré : un coup optimal porte un `evDelta` à 0 (et non -1, « non
+     * calculée »), et les alternatives sont classées à partir de l'action recommandée.
+     */
+    @Test void leCoupOptimalPorteUnEvDeltaNul() {
+        Player hero = player("hero", "Hero", 200, Position.BTN, "Ah", "Kh");
+        Player villain = player("bot", "Bot", 200, Position.BB, "Ts", "9d");
+
+        Hand hand = new Hand.Builder()
+            .handId("ev0").heroId("hero").smallBlind(1).bigBlind(2)
+            .players(List.of(hero, villain))
+            .initialStates(List.of(PlayerState.of(hero), PlayerState.of(villain)))
+            .addAction(new Action(hero, ActionType.RAISE, 5, BettingRound.PREFLOP))
+            .build();
+
+        ActionAdvice advice = analyser.analyse(hand).get(0);
+        assertEquals(0.0, advice.getEvDelta(), 1e-9, "un open optimal ne perd pas d'EV");
+        assertEquals(List.of(ActionType.RAISE, ActionType.CALL, ActionType.FOLD),
+            advice.getAlternatives());
+    }
+
+    /**
+     * Coucher au preflop une main que la range joue, alors qu'il y a une mise à payer,
+     * est chiffrable : fold = 0, call = équité × (pot + à payer) − à payer. L'EV perdue
+     * n'était posée dans aucune branche preflop.
+     */
+    @Test void leFoldPreflopDUneMainJouableChiffreLEvPerdue() {
+        Player hero = player("hero", "Hero", 200, Position.BTN, "Ah", "Ad");
+        Player villain = player("bot", "Bot", 200, Position.BB, "Ts", "9d");
+
+        Hand hand = new Hand.Builder()
+            .handId("evfold").heroId("hero").smallBlind(1).bigBlind(2)
+            .players(List.of(hero, villain))
+            .initialStates(List.of(PlayerState.of(hero), PlayerState.of(villain)))
+            .addAction(new Action(hero, ActionType.FOLD, BettingRound.PREFLOP))
+            .build();
+
+        ActionAdvice advice = analyser.analyse(hand).get(0);
+        assertTrue(advice.getEvDelta() > 0,
+            "coucher AA au bouton perd de l'EV, obtenu : " + advice.getEvDelta());
+    }
+
+    /**
+     * « Joueurs restant à parler » se déduit des positions et du round
+     * (`Position.speakingRank`) : l'ordre de parole n'a pas à être sérialisé.
+     * Le héro UTG a deux joueurs derrière lui au preflop.
+     */
+    @Test void leContexteCompteLesJoueursDerriere() {
+        Player hero = player("hero", "Hero", 200, Position.UTG, "Ah", "Kh");
+        Player co   = player("a", "A", 200, Position.CO, "Kc", "Qc");
+        Player bb   = player("b", "B", 200, Position.BB, "Kd", "Kh");
+
+        Hand hand = new Hand.Builder()
+            .handId("derriere").heroId("hero").smallBlind(1).bigBlind(2)
+            .players(List.of(hero, co, bb))
+            .initialStates(List.of(PlayerState.of(hero), PlayerState.of(co), PlayerState.of(bb)))
+            .addAction(new Action(hero, ActionType.RAISE, 6, BettingRound.PREFLOP))
+            .build();
+
+        ActionAdvice advice = analyser.analyse(hand).get(0);
+        assertTrue(advice.getContext().contains("2 joueurs derrière"),
+            "contexte obtenu : " + advice.getContext());
+    }
+
     //Un open standard reste bien noté : la référence d'ouverture n'a pas été cassée
     @Test void standardOpenStillScoresWell() {
         Player hero = player("hero", "Hero", 200, Position.BTN, "Ah", "Kh");
