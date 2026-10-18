@@ -42,11 +42,12 @@ final class ActionContext {
     final int effectiveStack;  // min(tapis héro, plus gros tapis adverse encore en jeu)
     final Position heroPosition;
     final int opponents;       // adversaires encore en jeu (non couchés, non éliminés)
+    final int playersBehind;   // adversaires qui parlent après le héro sur cette street (-1 si inconnu)
     final int bigBlind;
 
     private ActionContext(BettingRound round, List<Card> board, int totalPot, int betLevel,
                           int heroBet, int heroStack, int effectiveStack,
-                          Position heroPosition, int opponents, int bigBlind) {
+                          Position heroPosition, int opponents, int playersBehind, int bigBlind) {
         this.round = round;
         this.board = board;
         this.totalPot = totalPot;
@@ -56,6 +57,7 @@ final class ActionContext {
         this.effectiveStack = effectiveStack;
         this.heroPosition = heroPosition;
         this.opponents = opponents;
+        this.playersBehind = playersBehind;
         this.bigBlind = bigBlind;
     }
 
@@ -143,7 +145,36 @@ final class ActionContext {
         }
 
         return new ActionContext(round, board, totalPot, betLevel, heroBet, heroStack,
-                                 effectiveStack, heroPosition, Math.max(1, opponents), bigBlind);
+                                 effectiveStack, heroPosition, Math.max(1, opponents),
+                                 countPlayersBehind(reference, heroId, round), bigBlind);
+    }
+
+    /**
+     * Adversaires encore en jeu qui parlent APRÈS le héro sur cette street.
+     *
+     * L'ordre de parole n'est pas conservé dans les snapshots, et n'a pas besoin de l'être :
+     * il est entièrement déterminé par la position et le round
+     * (`Position.speakingRank`). Seuls les joueurs ACTIVE sont comptés — un joueur couché
+     * ou déjà à tapis ne prendra plus de décision derrière.
+     */
+    private static int countPlayersBehind(List<PlayerState> states, String heroId,
+                                          BettingRound round) {
+        boolean preflop = round == BettingRound.PREFLOP;
+        int heroRank = -1;
+        for (PlayerState ps : states) {
+            if (ps.getId().equals(heroId) && ps.getPosition() != null) {
+                heroRank = ps.getPosition().speakingRank(preflop);
+            }
+        }
+        if (heroRank < 0) return -1;
+
+        int behind = 0;
+        for (PlayerState ps : states) {
+            if (ps.getId().equals(heroId) || ps.getPosition() == null) continue;
+            if (ps.getStatus() != PlayerStatus.ACTIVE) continue;
+            if (ps.getPosition().speakingRank(preflop) > heroRank) behind++;
+        }
+        return behind;
     }
 
     //Board visible pendant ce round — jamais plus, jamais les cartes futures
