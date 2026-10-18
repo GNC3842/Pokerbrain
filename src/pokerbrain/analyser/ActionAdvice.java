@@ -3,6 +3,8 @@ package pokerbrain.analyser;
 import pokerbrain.model.game.ActionType;
 import pokerbrain.model.game.BettingRound;
 
+import java.util.List;
+
 /**
  * Conseil produit par le HandAnalyser pour une action précise
  *
@@ -42,7 +44,18 @@ public class ActionAdvice {
     private final String reasoning;// explication lisible
 
     // Détail structuré du calcul, pour que l'UI puisse afficher autre chose qu'un texte
-    private final double evDelta;  // EV perdue par rapport au coup recommandé, en BB (-1 = non calculée)
+    /**
+     * EV perdue par rapport au coup recommandé, en BB :
+     *   0   = coup optimal, rien de perdu ;
+     *   > 0 = erreur, et de combien ;
+     *   -1  = non chiffrable.
+     *
+     * Le -1 n'est pas un oubli : l'écart « CALL au lieu de RAISE » ou « open trop petit »
+     * demanderait de modéliser le déroulement de la relance (fold equity adverse, streets
+     * suivantes), ce que l'analyseur ne fait pas. Les deux erreurs qui se ramènent à l'EV
+     * d'un call — coucher un call profitable, payer un call perdant — sont chiffrées.
+     */
+    private final double evDelta;
     private final int outs;        // outs du héro sur un tirage (-1 = non applicable)
     private final double spr;      // stack-to-pot ratio au moment du coup (-1 = non applicable)
     private final String context;  // ex: "pot 3-bet, multiway, SPR 2.4"
@@ -114,6 +127,27 @@ public class ActionAdvice {
     
     public double getEvDelta() {
     	return this.evDelta;
+    }
+
+    /**
+     * Actions classées de la meilleure à la moins bonne dans ce spot, l'action recommandée
+     * en tête. Déduit de `recommended` plutôt que stocké : une liste figée dans chaque
+     * branche de l'analyseur se serait désynchronisée de la recommandation au premier
+     * ajustement de seuil.
+     *
+     * Volontairement sans EV par alternative : seule celle du call est calculable sans
+     * modéliser le déroulement d'une relance (voir `evDelta`). L'ordre, lui, est sûr.
+     */
+    public List<ActionType> getAlternatives() {
+        if (this.recommended == null) return List.of();
+        return switch (this.recommended) {
+            case RAISE  -> List.of(ActionType.RAISE, ActionType.CALL, ActionType.FOLD);
+            case ALL_IN -> List.of(ActionType.ALL_IN, ActionType.CALL, ActionType.FOLD);
+            case CALL   -> List.of(ActionType.CALL, ActionType.FOLD);
+            case FOLD   -> List.of(ActionType.FOLD, ActionType.CALL);
+            case BET    -> List.of(ActionType.BET, ActionType.CHECK);
+            case CHECK  -> List.of(ActionType.CHECK, ActionType.BET);
+        };
     }
 
     public int getOuts() {
