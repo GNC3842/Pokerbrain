@@ -17,6 +17,10 @@ import java.util.*;
 public final class HandHistoryParser{
   private static final List<String> SECTION_NAMES = Arrays.asList("HEADER", "PLAYERS", "HOLECARDS", "PREFLOP", "FLOP", "TURN", "RIVER", "SHOWDOWN");
 
+  // "<nom> - Seat <n> - Stack <s> - Position <p>", le nom pouvant contenir des tirets
+  private static final java.util.regex.Pattern PLAYER_LINE = java.util.regex.Pattern.compile(
+      "^(.*?)\\s+-\\s+Seat\\s+(\\d+)\\s+-\\s+Stack\\s+(\\d+)\\s+-\\s+Position\\s+(\\w+)$");
+
   //Parse un fichier contenant une ou plusieurs mains séparées par --- 
   public static List<Hand> parseFile(Path path) throws IOException, ParseException {
     String content = new String(Files.readAllBytes(path));
@@ -77,16 +81,16 @@ public final class HandHistoryParser{
     List<Card> board = new ArrayList<>();
 
     if (sections.containsKey("PREFLOP")) {
-      parseActions(sections.get("PREFLOP"), BettingRound.PREFLOP, byName, builder, board);
+      parseActions(sections.get("PREFLOP"), BettingRound.PREFLOP, byName, byId, builder, board);
     }
     if (sections.containsKey("FLOP")) {
-      parseActions(sections.get("FLOP"), BettingRound.FLOP,byName, builder, board);
+      parseActions(sections.get("FLOP"), BettingRound.FLOP, byName, byId, builder, board);
     }
     if (sections.containsKey("TURN")) {
-      parseActions(sections.get("TURN"), BettingRound.TURN,byName, builder, board);
+      parseActions(sections.get("TURN"), BettingRound.TURN, byName, byId, builder, board);
     }
     if (sections.containsKey("RIVER")) {
-      parseActions(sections.get("RIVER"), BettingRound.RIVER, byName, builder, board);
+      parseActions(sections.get("RIVER"), BettingRound.RIVER, byName, byId, builder, board);
     }
 
     builder.board(board);
@@ -273,13 +277,18 @@ public final class HandHistoryParser{
         String id = idAndRest[0].trim();
         String rest = idAndRest[1].trim();
 
-        // Séparer par " - "
-        String[] parts = rest.split("\\s*-\\s*");
-        String name = parts[0].trim();
-        int seat = Integer.parseInt(parts[1].replace("Seat", "").trim());
-        int stack = Integer.parseInt(parts[2].replace("Stack", "").trim());
-        String posStr = parts[3].replace("Position", "").trim();
-        Position pos = Position.valueOf(posStr);
+        // Champs reconnus par leur étiquette, pas par découpage sur les tirets : un
+        // « Jean-Marc » faisait éclater la ligne en cinq morceaux et perdre la main entière.
+        // Le nom est non gourmand mais ancré sur « - Seat », donc un nom qui contient
+        // lui-même « - » est rendu intact.
+        java.util.regex.Matcher m = PLAYER_LINE.matcher(rest);
+        if (!m.matches()) {
+          throw new ParseException("Format joueur invalide", i, line);
+        }
+        String name = m.group(1).trim();
+        int seat = Integer.parseInt(m.group(2));
+        int stack = Integer.parseInt(m.group(3));
+        Position pos = Position.valueOf(m.group(4));
 
         Player p = new Player(id, name, stack);
         p.setSeat(seat);
@@ -321,6 +330,7 @@ public final class HandHistoryParser{
   //Parsing des actions au format : <nom>: <ACTION> [<montant>] ainsi que "Board: <cartes>" dans FLOP/TURN/RIVER
   private static void parseActions(List<String> lines, BettingRound round,
                                       Map<String, Player> byName,
+                                      Map<String, Player> byId,
                                       Hand.Builder builder,
                                       List<Card> board) throws ParseException {
     for (int i = 0; i < lines.size(); i++) {
@@ -340,7 +350,9 @@ public final class HandHistoryParser{
         String playerName = parts[0].trim();
         String[] actionParts = parts[1].trim().split("\\s+");
 
-        Player p = byName.get(playerName);
+        // Les actions sont écrites par nom (lisible), mais un id est accepté : c'est la
+        // seule clé garantie unique, et deux joueurs peuvent porter le même nom.
+        Player p = byName.containsKey(playerName) ? byName.get(playerName) : byId.get(playerName);
         if (p == null) {
           throw new ParseException("Joueur inconnu : " + playerName, i, line);
         }

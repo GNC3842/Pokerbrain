@@ -140,6 +140,30 @@ public class ParserWriterTest {
         }
     }
 
+    /**
+     * Un nom qui contient un tiret faisait éclater la ligne PLAYERS en cinq morceaux :
+     * la main entière était perdue sur une `ParseException`.
+     */
+    @Test void unNomAvecTiretNeCassePasLaMain() throws ParseException {
+        Player p1 = new Player("hero", "Jean-Marc", 200);
+        Player p2 = new Player("bot",  "Bob", 200);
+        p1.setPosition(Position.BTN); p1.setSeat(1);
+        p2.setPosition(Position.BB);  p2.setSeat(2);
+        p1.receiveHoleCards(Card.fromString("Ah"), Card.fromString("Kh"));
+        p2.receiveHoleCards(Card.fromString("Qs"), Card.fromString("Jd"));
+        Hand h = new Hand.Builder()
+            .handId("tiret").heroId("hero").smallBlind(1).bigBlind(2)
+            .players(List.of(p1, p2))
+            .initialStates(List.of(PlayerState.of(p1), PlayerState.of(p2)))
+            .addAction(new Action(p1, ActionType.RAISE, 6, BettingRound.PREFLOP))
+            .addAction(new Action(p2, ActionType.FOLD, BettingRound.PREFLOP))
+            .build();
+
+        Hand parsed = HandHistoryParser.parseString(HandHistoryWriter.serialize(h));
+        assertEquals("Jean-Marc", parsed.getInitialStates().get(0).getName());
+        assertEquals(2, parsed.getActions().size());
+    }
+
     // ── helpers ──────────────────────────────────────────────────────────────
 
     private Hand sample() {
