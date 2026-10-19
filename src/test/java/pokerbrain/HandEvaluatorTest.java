@@ -84,6 +84,23 @@ public class HandEvaluatorTest {
 
     // Helpers
 
+    /**
+     * La main finale se décrit en français. Le décodeur `toHandRank` existait sans aucun
+     * appelant : au showdown comme au replay, rien n'était affiché.
+     */
+    @Test void laMainFinaleSeDecritEnFrancais() {
+        assertEquals("Full aux Rois par les Dames",
+            fast("Kh", "Kd", "Ks", "Qc", "Qd", "2s", "7h").describe());
+        assertEquals("Couleur à l'As",
+            fast("Ah", "3h", "Kh", "9h", "7h", "2c", "4d").describe());
+        assertEquals("Quinte flush au 9",
+            fast("9h", "8h", "7h", "6h", "5h", "Ah", "2c").describe());
+        assertEquals("Paire d'As",
+            fast("Ah", "Ad", "2c", "7d", "9s", "Jh", "4c").describe());
+        assertEquals("Double paire, Rois et 7",
+            fast("Kh", "Kd", "7c", "7d", "9s", "3h", "4c").describe());
+    }
+
     private static int encodeAndEval(String... cards) {
         int[] enc = new int[7];
         for (int i = 0; i < 7; i++) enc[i] = CardPrimitiveBridge.encode(Card.fromString(cards[i]));

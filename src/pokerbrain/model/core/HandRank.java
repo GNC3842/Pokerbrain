@@ -36,6 +36,54 @@ public class HandRank implements Comparable<HandRank> {
 	public long getNumericValue() {
 		return this.numericValue;
 	}
+
+	/**
+	 * Description lisible en français : « Full aux Rois par les Dames », « Couleur à l'As ».
+	 *
+	 * Les kickers sont rangés du plus significatif au moins significatif, comme les produit
+	 * `FastHandEvaluator.toHandRank` : le carré puis son kicker, le brelan du full puis sa
+	 * paire, la paire haute puis la paire basse puis le kicker, et pour une quinte la carte
+	 * haute d'abord (la roue se lit 5 4 3 2 A, donc « suite au 5 »).
+	 */
+	public String describe() {
+		List<Rank> k = getKickers();
+		if (k.isEmpty()) return getType().getName();
+		Rank premier = k.get(0);
+
+		switch (getType()) {
+			case ROYAL_FLUSH:    return "Quinte flush royale";
+			case STRAIGHT_FLUSH: return "Quinte flush " + au(premier);
+			case FOUR_OF_KIND:   return "Carré " + de(premier);
+			case FULL_HOUSE:     return k.size() > 3
+				? "Full aux " + pluriel(premier) + " par les " + pluriel(k.get(3))
+				: "Full aux " + pluriel(premier);
+			case FLUSH:          return "Couleur " + au(premier);
+			case STRAIGHT:       return "Suite " + au(premier);
+			case THREE_OF_KIND:  return "Brelan " + de(premier);
+			case TWO_PAIR:       return k.size() > 2
+				? "Double paire, " + pluriel(premier) + " et " + pluriel(k.get(2))
+				: "Double paire aux " + pluriel(premier);
+			case PAIR:           return "Paire " + de(premier);
+			default:             return "Hauteur " + Rank.getDisplayName(premier.getSymbol());
+		}
+	}
+
+	//« au Roi », « à l'As » — l'élision est le seul cas particulier
+	private static String au(Rank rank) {
+		return rank == Rank.ACE ? "à l'As" : "au " + Rank.getDisplayName(rank.getSymbol());
+	}
+
+	//« de Rois », « d'As »
+	private static String de(Rank rank) {
+		return rank == Rank.ACE ? "d'As" : "de " + pluriel(rank);
+	}
+
+	private static String pluriel(Rank rank) {
+		String nom = Rank.getDisplayName(rank.getSymbol());
+		//As et Dix sont invariables, les chiffres s'écrivent tels quels
+		if (rank == Rank.ACE || rank == Rank.TEN || rank.getValue() <= 9) return nom;
+		return nom + "s";
+	}
 	//Comparer 2 HandRanks: positif si this plus fort, négatif si plus faible, 0 sinon
 	@Override
 	public int compareTo(HandRank other) {
@@ -56,17 +104,9 @@ public class HandRank implements Comparable<HandRank> {
 		return Long.hashCode(this.numericValue);
 	}
 	
-	public static HandRank decode(int encodedValue) {
-		HandType type = HandType.fromBaseValue((encodedValue >> 20) & 0xf);
-		List<Rank> kickers = List.of(
-			Rank.fromValue((encodedValue >> 16) & 0xf),
-			Rank.fromValue((encodedValue >> 12) & 0xf),
-			Rank.fromValue((encodedValue >> 8)  & 0xf),
-			Rank.fromValue((encodedValue >> 4)  & 0xf),
-			Rank.fromValue( encodedValue        & 0xf)
-		);
-		return new HandRank(type, kickers);
-	}
+	// Le décodage d'un entier vers un HandRank affichable appartient désormais à
+	// FastHandEvaluator.toHandRank(int) : la classe canonique 1-7462 n'est pas
+	// auto-descriptive, elle demande les tables inverses du simulateur.
 
 	//toString
 	@Override
