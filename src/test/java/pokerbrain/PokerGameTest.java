@@ -118,6 +118,32 @@ public class PokerGameTest {
         assertEquals(196, bb.getStack());
     }
 
+    /**
+     * Le bouton tourne sur les sièges, pas modulo la liste des joueurs encore en jeu :
+     * à quatre joueurs dont le premier saute, il passait du siège 1 au siège 3 en oubliant
+     * le 2 (et pouvait reculer, ou rester deux mains de suite sur le même joueur).
+     */
+    @Test void leBoutonAvanceDansLOrdreDesSieges() {
+        List<Player> table = List.of(
+            new Player("a", "A", 200), new Player("b", "B", 200),
+            new Player("c", "C", 200), new Player("d", "D", 200));
+        PokerGame g = new PokerGame(new ArrayList<>(table), 1, 2);
+
+        g.startNewHand();
+        assertEquals("B", porteurDuBouton(table), "première main : bouton au siège 1");
+        while (!g.isHandOver()) g.applyAction(ActionType.FOLD);
+
+        table.get(0).setStack(0); // A est éliminé
+        g.startNewHand();
+        assertEquals("C", porteurDuBouton(table),
+            "le bouton passe au siège suivant, pas deux crans plus loin");
+    }
+
+    private String porteurDuBouton(List<Player> table) {
+        return table.stream().filter(p -> p.getPosition() == Position.BTN)
+            .findFirst().orElseThrow().getName();
+    }
+
     private void completeRound() {
         while (!game.isRoundComplete() && !game.isHandOver()) {
             List<ActionType> v = game.getValidActions();

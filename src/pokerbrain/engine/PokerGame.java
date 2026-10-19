@@ -34,7 +34,9 @@ public class PokerGame {
 	private BettingRoundManager    roundManager;
 	private List<Action>           handHistory;
 	private boolean                handOver;
-	private int                    dealerSeat; // indice du BTN dans players[]
+	// Indice du porteur du bouton dans `players`, la liste stable des sièges : jamais dans
+	// une liste filtrée, dont la taille change à chaque élimination.
+	private int                    buttonSeat;
 	private PositionManager        currentPositionManager;
 
 	//Constructeur
@@ -54,7 +56,7 @@ public class PokerGame {
 		this.positionManager = new PositionManager(players.size());
 		this.dealerEngine    = new DealerEngine(new Deck());
 		this.potManager      = new PotManager();
-		this.dealerSeat      = 0;
+		this.buttonSeat      = 0;
 		this.handOver        = true;
 	}
 
@@ -91,13 +93,41 @@ public class PokerGame {
 			this.positionManager = new PositionManager(activePlayers.size());
 		}
 
-		// Rotation du dealer
-		this.dealerSeat = (this.dealerSeat + 1) % activePlayers.size();
+		/*
+		 * Rotation du bouton : siège suivant encore pourvu en jetons, dans l'ordre STABLE
+		 * de `players`. L'ancien calcul avançait un index modulo `activePlayers.size()`,
+		 * une liste qui rétrécit à chaque élimination : le bouton pouvait sauter un siège,
+		 * reculer, ou rester deux mains de suite sur le même joueur.
+		 */
+		for (int step = 1; step <= this.players.size(); step++) {
+			int candidat = (this.buttonSeat + step) % this.players.size();
+			if (activePlayers.contains(this.players.get(candidat))) {
+				this.buttonSeat = candidat;
+				break;
+			}
+		}
 
-		// Réordonner depuis le BTN
-		List<Player> fromDealer = new ArrayList<>();
-		for (int i = 0; i < activePlayers.size(); i++) {
-			fromDealer.add(activePlayers.get((this.dealerSeat + i) % activePlayers.size()));
+		// Joueurs encore en jeu, en partant du bouton
+		List<Player> depuisBouton = new ArrayList<>();
+		for (int i = 0; i < this.players.size(); i++) {
+			Player p = this.players.get((this.buttonSeat + i) % this.players.size());
+			if (activePlayers.contains(p)) {
+				depuisBouton.add(p);
+			}
+		}
+
+		/*
+		 * `assignPositions` distribue les positions dans l'ordre de parole preflop
+		 * (ex. à 4 joueurs : CO, BTN, SB, BB), le BTN n'est donc pas en tête de liste.
+		 * On fait tourner la liste pour que le porteur du bouton tombe pile sur le siège
+		 * BTN de cette table — sans quoi un changement de nombre de joueurs décale le
+		 * bouton d'autant que le rang du BTN a bougé.
+		 */
+		int nbActifs = depuisBouton.size();
+		int rangBouton = this.positionManager.getActivePositions().indexOf(Position.BTN);
+		List<Player> fromDealer = new ArrayList<>(Collections.nCopies(nbActifs, (Player) null));
+		for (int i = 0; i < nbActifs; i++) {
+			fromDealer.set((i + rangBouton) % nbActifs, depuisBouton.get(i));
 		}
 
 		// Assigner les positions
