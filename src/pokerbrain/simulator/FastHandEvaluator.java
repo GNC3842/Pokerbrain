@@ -1,5 +1,6 @@
 package pokerbrain.simulator;
 
+import pokerbrain.model.core.Card;
 import pokerbrain.model.core.HandRank;
 import pokerbrain.model.core.Rank;
 
@@ -106,6 +107,23 @@ public class FastHandEvaluator {
             kickers.add(Rank.fromValue((packed >>> shift) & 0xf));
         }
         return new HandRank(CactusKevTables.CLASS_TYPE[rankClass], kickers);
+    }
+
+    /**
+     * Main finale d'un joueur, prête à afficher : 2 cartes fermées + 5 du board
+     * → « Full aux Rois ». Rend null si les données ne suffisent pas (board incomplet,
+     * cartes fermées inconnues sur une main relue), à l'UI de ne rien écrire alors.
+     *
+     * Hors boucle chaude : alloue un évaluateur à chaque appel, ce qui évite d'avoir à se
+     * demander depuis quel thread on l'appelle (le masque par couleur est de l'état d'instance).
+     */
+    public static HandRank describeBestHand(List<Card> hole, List<Card> board) {
+        if (hole == null || hole.size() != 2 || board == null || board.size() != 5) return null;
+        int[] enc = new int[7];
+        for (int i = 0; i < 5; i++) enc[i] = CardPrimitiveBridge.encode(board.get(i));
+        enc[5] = CardPrimitiveBridge.encode(hole.get(0));
+        enc[6] = CardPrimitiveBridge.encode(hole.get(1));
+        return toHandRank(new FastHandEvaluator().evaluate7(enc));
     }
 
     private static int[] buildCombos() {

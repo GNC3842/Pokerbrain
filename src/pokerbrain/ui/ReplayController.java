@@ -135,10 +135,17 @@ public class ReplayController {
             for (PlayerState ps : h.getInitialStates()) {
                 if (!foldedIds.contains(ps.getId()) && ps.getHoleCards().size() == 2) {
                     String marker = (winnings != null && winnings.getOrDefault(ps.getId(), 0) > 0) ? " ★" : "";
+                    // Main finale en clair : le décodeur existait sans appelant
+                    pokerbrain.model.core.HandRank rank =
+                        pokerbrain.simulator.FastHandEvaluator.describeBestHand(
+                            ps.getHoleCards(), h.getBoard());
                     resultText.append("  ").append(ps.getName()).append(" : ")
                         .append(ps.getHoleCards().get(0)).append(" ")
-                        .append(ps.getHoleCards().get(1))
-                        .append(marker).append("\n");
+                        .append(ps.getHoleCards().get(1));
+                    if (rank != null) {
+                        resultText.append(" — ").append(rank.describe());
+                    }
+                    resultText.append(marker).append("\n");
                 }
             }
         }

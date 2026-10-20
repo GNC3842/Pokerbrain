@@ -11,8 +11,10 @@ import javafx.util.Duration;
 import pokerbrain.bot.Bot;
 import pokerbrain.engine.GameSession;
 import pokerbrain.model.core.Card;
+import pokerbrain.model.core.HandRank;
 import pokerbrain.model.game.*;
 import pokerbrain.AppContext;
+import pokerbrain.simulator.FastHandEvaluator;
 import pokerbrain.simulator.MonteCarloEngine;
 
 import java.util.ArrayList;
@@ -229,10 +231,15 @@ public class GameController {
         try {
             winnings = session.getGame().showdown();
             SessionData.addHand(session.buildAndCloseHand(winnings));
+            List<Card> board = session.getGame().getBoard();
             for (Player p : session.getGame().getPlayers()) {
                 if (!p.isFolded() && !p.isOut()) {
                     PlayerView view = playerViews.get(p.getId());
                     if (view != null) view.setPlayer(p);
+                    // Main abattue en clair : « Full aux Rois » plutôt qu'une classe 1-7462
+                    HandRank rank = FastHandEvaluator.describeBestHand(p.getHoleCards(), board);
+                    if (rank != null)
+                        addActionToHistory("SHOWDOWN", p.getName(), rank.describe());
                 }
             }
             for (Map.Entry<Player, Integer> e : winnings.entrySet()) {
