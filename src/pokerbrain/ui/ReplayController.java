@@ -5,7 +5,6 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
-import pokerbrain.AppContext;
 import pokerbrain.analyser.ActionAdvice;
 import pokerbrain.analyser.HandAnalyser;
 import pokerbrain.model.core.Card;
@@ -165,8 +164,6 @@ public class ReplayController {
      * apparaissent dès qu'ils sont prêts.
      */
     private void startAnalysis(Hand h) {
-        if (!AppContext.isReady()) return;
-
         Task<Map<Integer, ActionAdvice>> task = new Task<>() {
             @Override
             protected Map<Integer, ActionAdvice> call() {

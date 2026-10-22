@@ -14,10 +14,7 @@ public class MainApp extends Application {
 
     @Override
     public void start(Stage stage) throws IOException {
-    	
-    	// Lancer la génération MC en background (thread daemon)
-        AppContext.initAsync();
-        //Charger l'historique
+    	//Charger l'historique
         pokerbrain.ui.SessionData.initHistory();
         
         primaryStage = stage;

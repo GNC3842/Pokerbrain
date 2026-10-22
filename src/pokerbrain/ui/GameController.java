@@ -13,7 +13,6 @@ import pokerbrain.engine.GameSession;
 import pokerbrain.model.core.Card;
 import pokerbrain.model.core.HandRank;
 import pokerbrain.model.game.*;
-import pokerbrain.AppContext;
 import pokerbrain.simulator.FastHandEvaluator;
 import pokerbrain.simulator.MonteCarloEngine;
 
@@ -434,16 +433,27 @@ public class GameController {
         }
         List<Card> board = new ArrayList<>(session.getGame().getBoard());
         int nbOpp = session.countActiveOpponents();
-        new Thread(() -> {
-            try {
-                MonteCarloEngine engine = AppContext.getEngine();
-                MonteCarloEngine.EquityResult result = engine.calculateEquity(hole, board, 3000, Math.max(1, nbOpp));
-                double eq = result.equity();
-                javafx.application.Platform.runLater(() -> {
-                	equityLabel.setText(String.format("Equity: %.1f%%", eq));
-                });
-            }catch (Exception e) { /* silencieux */ }
-        }).start();
+
+        // Task plutôt qu'un Thread brut : le résultat revient sur le thread FX tout seul,
+        // sans Platform.runLater à la main, et un échec ne disparaît plus dans un catch vide.
+        Task<Double> calcul = new Task<>() {
+            @Override
+            protected Double call() {
+                // Une instance par tâche : le MonteCarloEngine porte des buffers d'instance
+                return new MonteCarloEngine()
+                    .calculateEquity(hole, board, 3000, Math.max(1, nbOpp)).equity();
+            }
+        };
+        calcul.setOnSucceeded(e ->
+            equityLabel.setText(String.format("Équité : %.1f %%", calcul.getValue())));
+        calcul.setOnFailed(e -> {
+            equityLabel.setText("");
+            pokerbrain.Debug.log(() -> "[Equité] échec du calcul : " + calcul.getException());
+        });
+
+        Thread t = new Thread(calcul, "equity-thread");
+        t.setDaemon(true);
+        t.start();
     }
 
     private void refreshAllPlayerViews(boolean revealBotCards) {

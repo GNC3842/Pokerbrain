@@ -7,7 +7,7 @@ package pokerbrain.bot;
  *
  * USAGE :
  *   BotProfile tag = BotProfileFactory.createTightAggressive();
- *   Bot bot = new Bot("bot-0", tag, AppContext.getEngine());
+ *   Bot bot = new Bot("bot-0", tag, new MonteCarloEngine());
  */
 public final class BotProfileFactory {
 
