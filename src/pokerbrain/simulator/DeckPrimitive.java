@@ -66,9 +66,6 @@ public class DeckPrimitive {
     	return ALL_ENCODED[available[i]]; 
     }
 
-    public int getAvailableCount() { 
-    	return availableCount; 
-    }
     
     //Encode une liste de Cards OO en tableau d'indices primitifs
     public static void encodeCards(List<Card> cards, int[] outIdx, int[] outEnc) {

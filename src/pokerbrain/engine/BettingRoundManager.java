@@ -253,13 +253,6 @@ public class BettingRoundManager {
     	return this.currentBetLevel;
     }
 
-    public List<Player> getActivePlayers() {
-        List<Player> active = new ArrayList<>();
-        for (Player p : this.players) {
-            if (p.isActive() || p.isAllIn()) active.add(p);
-        }
-        return active;
-    }
     
     /**
      * Montant minimum pour un raise légal (total à atteindre, pas le delta).

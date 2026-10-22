@@ -60,6 +60,7 @@ public class PlayerStatistics {
 		this.bigBlind = bigBlind;
 	}
 
+	
 	//Constructeur sans données de 3-bet (le 3-bet est alors non mesuré)
 	public PlayerStatistics(String playerId, String playerName, int handsPlayed,int vpipCount,
 			int pfrCount, int callCount, int agressiveCount, int wentToShowDown, int wonAtShowDown,
@@ -67,7 +68,7 @@ public class PlayerStatistics {
 		this(playerId, playerName, handsPlayed, vpipCount, pfrCount, callCount, agressiveCount,
 			 0, 0, wentToShowDown, wonAtShowDown, totalWinnings, bigBlind);
 	}
-	
+
 	//Calcul des stats
 	public double getVPIP() {
 		if( this.handsPlayed == 0) {

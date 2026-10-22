@@ -60,10 +60,6 @@ public enum Position {
 		return this.code;
 	}
 	
-	//récupere nom complet
-	public String getFullName() {
-		return this.fullName;
-	}
 	
 	//Savoir si position importante
 	public boolean isDealer() {
@@ -78,14 +74,7 @@ public enum Position {
 		return this.bigBlind;
 	}
 	
-	//Savoir si blinde obligatoire
-	public boolean isBlind() {
-		return (isSmallBlind() || isBigBlind());
-	}
 	
-	//True pour les positions qui jouent "en position" postflop (CO, BTN).
-    public boolean isLatePosition() { return this == CO || this == BTN; }
-
     /**
      * Rang dans l'ordre de parole de la street, 0 = parle en premier.
      *

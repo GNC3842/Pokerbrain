@@ -32,9 +32,6 @@ import java.util.*;
  *   // Depuis le classpath (src/main/resources/ranges/)
  *   RangeMap map = RangeMapLoader.fromClasspath("ranges/tag_btn.csv");
  *
- *   // Depuis un chemin absolu (fichier utilisateur)
- *   RangeMap map = RangeMapLoader.fromFile(Paths.get("/mes/ranges/custom.csv"));
- *
  *   // Construire un BotProfile avec des fichiers differents par position
  *   BotProfile profil = RangeMapLoader.loadProfile("ranges/tag", ...);
  */
@@ -62,19 +59,6 @@ public final class RangeMapLoader {
     	try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             return parse(br, resourcePath);
         }
-    }
-
-    //Chargement depuis le systeme de fichiers 
-    //Charge une RangeMap depuis un chemin absolue ou relatif
-
-    public static RangeMap fromFile(Path path) throws IOException {
-        try (BufferedReader br = Files.newBufferedReader(path)) {
-            return parse(br, path.toString());
-        }
-    }
-
-    public static RangeMap fromFile(String path) throws IOException {
-        return fromFile(Paths.get(path));
     }
 
     //Chargement silencieux (avec fallback)

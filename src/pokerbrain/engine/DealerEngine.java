@@ -100,8 +100,6 @@ public class DealerEngine {
 		return new ArrayList<>(this.board);
 	}
 
-	public Deck getDeck() { return this.deck; }
-
 	public boolean isFlopDealt(){ 
 		return this.board.size() >= 3; 
 	}

@@ -207,8 +207,4 @@ public final class HandHistoryWriter{
     }
   }
 
-  //Possiblement ajouter une fonction pour écrire plusieurs mains directe dans un fichier
-  public static void writeToFile(Hand hand, Path filePath)throws IOException {
-    
-  }
 }

@@ -37,7 +37,6 @@ public class PokerGame {
 	// Indice du porteur du bouton dans `players`, la liste stable des sièges : jamais dans
 	// une liste filtrée, dont la taille change à chaque élimination.
 	private int                    buttonSeat;
-	private PositionManager        currentPositionManager;
 
 	//Constructeur
 	public PokerGame(List<Player> players, int smallBlind, int bigBlind) {

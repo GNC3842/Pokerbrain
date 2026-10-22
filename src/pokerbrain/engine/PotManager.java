@@ -270,10 +270,6 @@ public class PotManager {
         return finalised + current;
     }
     
-    public int getCurrentRoundTotal() {
-        return this.roundContributions.values().stream().mapToInt(Integer::intValue).sum();
-    }
-
     public List<SidePot> getFinalisedPots() {
         return Collections.unmodifiableList(this.finalisedPots);
     }

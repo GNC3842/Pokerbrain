@@ -60,12 +60,6 @@ public class RangeMap {
         return this;
     }
 
-    //Definit l'action pour toutes les paires >= minRank
-    public RangeMap setPairsFrom(Rank minRank, ActionType action) {
-        for (int i = idx(minRank); i < SIZE; i++) pairs[i] = action;
-        return this;
-    }
-
     // Setters pour suited
 
     //Definit l'action pour une main suited specifique (ex: AKs)
@@ -81,15 +75,6 @@ public class RangeMap {
         return this;
     }
 
-    //Definit l'action pour toutes les mains suited high-X avec X >= minLow
-    public RangeMap setSuitedFrom(Rank high, Rank minLow, ActionType action) {
-        int h = idx(high);
-        for (int l = idx(minLow); l < h; l++) {
-            suited[h][l] = action;
-        }
-        return this;
-    }
-
     //Setters pour offsuit
 
     //Definit l'action pour une main offsuit specifique (ex: AKo)
@@ -98,15 +83,6 @@ public class RangeMap {
         int l = idx(low);
         if (h == l) { pairs[h] = action; return this; }
         offsuit[Math.max(h, l)][Math.min(h, l)] = action;
-        return this;
-    }
-
-    // Definit l'action pour toutes les mains offsuit high-X avec X >= minLow
-    public RangeMap setOffsuitFrom(Rank high, Rank minLow, ActionType action) {
-        int h = idx(high);
-        for (int l = idx(minLow); l < h; l++) {
-            offsuit[h][l] = action;
-        }
         return this;
     }
 
@@ -180,10 +156,3 @@ public class RangeMap {
 
     //Affichage de la heatmap en Ascii si besoin (a faire pour le fun)
 }
-/*
-    }
-
-    private static int idx(Rank r) {
-    	return r.getValue() - 2;
-    }
-*/
