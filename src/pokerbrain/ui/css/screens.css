@@ -1,0 +1,118 @@
+/*
+ * Spécificités par écran. Tout ce qui n'est ni un composant réutilisable ni une couleur de
+ * la palette : titres d'accueil, ovale de feutre, tuiles de statistiques.
+ */
+
+/* ── Menu principal ───────────────────────────────────────────────────────── */
+
+.menu__title {
+    -fx-font-size: 46px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -pb-text;
+}
+.menu__title-mark { -fx-text-fill: -pb-accent; }
+.menu__subtitle {
+    -fx-font-size: 14px;
+    -fx-text-fill: -pb-text-dim;
+}
+.menu__action {
+    -fx-min-width: 300px;
+    -fx-min-height: 52px;
+    -fx-font-size: 15px;
+}
+
+/* ── Table de jeu ─────────────────────────────────────────────────────────── */
+
+/*
+ * Le feutre, et seulement ici. Dégradé radial pour que la table ait un centre éclairé
+ * plutôt qu'un aplat, et un liseré plus clair en guise de rail.
+ */
+.felt {
+    -fx-background-color: radial-gradient(center 50% 42%, radius 62%,
+                          derive(-pb-felt, 16%) 0%, -pb-felt 70%, derive(-pb-felt, -22%) 100%);
+    -fx-background-radius: 180px;
+    -fx-border-color: -pb-felt-edge;
+    -fx-border-radius: 180px;
+    -fx-border-width: 2.5;
+    -fx-padding: 24 36 24 36;
+}
+
+.table-root { -fx-background-color: -pb-bg; }
+
+/* Panneau latéral d'historique */
+.side-panel {
+    -fx-background-color: -pb-bg-elevated;
+    -fx-border-color: -pb-line transparent transparent transparent;
+    -fx-border-width: 0 0 0 1;
+    -fx-padding: 12 12 12 12;
+    -fx-min-width: 210px;
+}
+
+.round-badge {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -pb-accent;
+    -fx-background-color: -pb-accent-soft;
+    -fx-background-radius: 3px;
+    -fx-padding: 3 10 3 10;
+}
+
+/* ── Statistiques ─────────────────────────────────────────────────────────── */
+
+/* Tuile de statistique : intitulé, valeur, définition */
+.stat-tile {
+    -fx-min-width: 104px;
+}
+.stat-tile__label { -fx-font-size: 11px; -fx-text-fill: -pb-text-dim; }
+.stat-tile__value {
+    -fx-font-size: 23px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -pb-text;
+}
+.stat-tile__hint { -fx-font-size: 10px; -fx-text-fill: -pb-text-faint; }
+
+/* Fuite détectée : la sévérité porte la couleur, le texte reste lisible */
+.leak {
+    -fx-background-color: -pb-surface-2;
+    -fx-background-radius: 4px;
+    -fx-padding: 8 12 8 12;
+    -fx-border-width: 0 0 0 3;
+    -fx-border-color: -pb-text-faint transparent transparent transparent;
+}
+.leak--info     { -fx-border-color: -pb-good transparent transparent transparent; }
+.leak--moderate { -fx-border-color: -pb-mid transparent transparent transparent; }
+.leak--critical { -fx-border-color: -pb-bad transparent transparent transparent; }
+.leak__title { -fx-font-size: 12px; -fx-font-weight: bold; }
+.leak__detail { -fx-font-size: 11px; -fx-text-fill: -pb-text-dim; }
+
+/* ── Replay et calculateur ────────────────────────────────────────────────── */
+
+.equity__big {
+    -fx-font-size: 30px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -pb-text;
+}
+.equity__mid {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -pb-text-dim;
+}
+
+.advice {
+    -fx-font-size: 12px;
+    -fx-text-fill: -pb-text-dim;
+    -fx-padding: 8 4 8 4;
+}
+
+.step__round { -fx-font-size: 15px; -fx-font-weight: bold; -fx-text-fill: -pb-accent; }
+.step__action { -fx-font-size: 14px; }
+.step__pot { -fx-font-size: 13px; -fx-text-fill: -pb-text-dim; }
+.step__counter {
+    -fx-font-size: 13px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -pb-text;
+    -fx-min-width: 120px;
+    -fx-alignment: CENTER;
+}
+
+.error { -fx-text-fill: -pb-bad; -fx-font-size: 12px; }

@@ -1,0 +1,291 @@
+/*
+ * Composants réutilisables. Aucune couleur en dur : tout vient des noms définis dans
+ * theme.css. Les widgets maison (CardView, PlayerView, PotView, ActionTimeline,
+ * EquityChart) posent leurs classes avec getStyleClass() et ne font plus aucun setStyle.
+ */
+
+/* ── Boutons ──────────────────────────────────────────────────────────────── */
+
+.btn {
+    -fx-background-color: -pb-surface-2;
+    -fx-text-fill: -pb-text;
+    -fx-background-radius: 4px;
+    -fx-border-color: -pb-line;
+    -fx-border-radius: 4px;
+    -fx-padding: 8 16 8 16;
+    -fx-font-size: 13px;
+    -fx-cursor: hand;
+}
+.btn:hover   { -fx-background-color: derive(-pb-surface-2, 18%); }
+.btn:pressed { -fx-background-color: derive(-pb-surface-2, -10%); }
+.btn:disabled { -fx-opacity: 0.4; -fx-cursor: default; }
+
+/* Action principale de l'écran : une seule par écran */
+.btn--primary {
+    -fx-background-color: -pb-accent;
+    -fx-text-fill: -pb-accent-text;
+    -fx-border-color: transparent;
+    -fx-font-weight: bold;
+}
+.btn--primary:hover   { -fx-background-color: derive(-pb-accent, 12%); }
+.btn--primary:pressed { -fx-background-color: derive(-pb-accent, -12%); }
+
+/* Action secondaire : contour accentué, fond sobre */
+.btn--outline {
+    -fx-background-color: transparent;
+    -fx-text-fill: -pb-accent;
+    -fx-border-color: -pb-accent-soft;
+}
+.btn--outline:hover { -fx-background-color: -pb-accent-soft; }
+
+/* Action discrète : retour au menu, quitter */
+.btn--ghost {
+    -fx-background-color: transparent;
+    -fx-text-fill: -pb-text-dim;
+    -fx-border-color: -pb-line;
+    -fx-padding: 5 12 5 12;
+    -fx-font-size: 12px;
+}
+.btn--ghost:hover { -fx-text-fill: -pb-text; -fx-border-color: -pb-text-dim; }
+
+/* Se coucher : la seule action destructrice de la table */
+.btn--danger {
+    -fx-background-color: transparent;
+    -fx-text-fill: -pb-bad;
+    -fx-border-color: derive(-pb-bad, -45%);
+}
+.btn--danger:hover { -fx-background-color: derive(-pb-bad, -70%); }
+
+/* Boutons d'action de la table : hauts, larges, lisibles de loin */
+.btn--table {
+    -fx-min-width: 128px;
+    -fx-min-height: 46px;
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+}
+
+/* Navigation du replay */
+.btn--nav {
+    -fx-min-width: 44px;
+    -fx-min-height: 34px;
+    -fx-padding: 4 10 4 10;
+}
+
+/* ── Cartons ──────────────────────────────────────────────────────────────── */
+
+.panel {
+    -fx-background-color: -pb-surface;
+    -fx-background-radius: 8px;
+    -fx-border-color: -pb-line;
+    -fx-border-radius: 8px;
+    -fx-padding: 14;
+}
+
+/* Bandeau supérieur commun aux écrans */
+.topbar {
+    -fx-background-color: -pb-bg-elevated;
+    -fx-border-color: transparent transparent -pb-line transparent;
+    -fx-padding: 12 20 12 20;
+}
+
+/* Bandeau inférieur (actions du héro, navigation) */
+.bottombar {
+    -fx-background-color: -pb-bg-elevated;
+    -fx-border-color: -pb-line transparent transparent transparent;
+    -fx-padding: 14 24 14 24;
+}
+
+.separator *.line {
+    -fx-border-color: -pb-line;
+    -fx-border-width: 1 0 0 0;
+}
+
+/* ── Champs et contrôles ──────────────────────────────────────────────────── */
+
+.field {
+    -fx-background-color: -pb-bg;
+    -fx-text-fill: -pb-text;
+    -fx-prompt-text-fill: -pb-text-faint;
+    -fx-background-radius: 4px;
+    -fx-border-color: -pb-line;
+    -fx-border-radius: 4px;
+    -fx-alignment: CENTER;
+    -fx-font-family: "DejaVu Sans Mono", "Consolas", monospace;
+}
+.field:focused { -fx-border-color: -pb-accent; }
+
+.field--card { -fx-min-width: 64px; -fx-min-height: 36px; -fx-font-size: 15px; }
+.field--board { -fx-min-width: 58px; -fx-min-height: 32px; -fx-font-size: 13px; }
+.field--text { -fx-alignment: CENTER_LEFT; -fx-min-height: 36px; }
+
+.combo-box {
+    -fx-background-color: -pb-surface-2;
+    -fx-background-radius: 4px;
+    -fx-border-color: -pb-line;
+    -fx-border-radius: 4px;
+    -fx-mark-color: -pb-accent;
+}
+.combo-box .list-cell { -fx-text-fill: -pb-text; -fx-background-color: transparent; }
+.combo-box-popup .list-view {
+    -fx-background-color: -pb-surface-2;
+    -fx-border-color: -pb-line;
+}
+.combo-box-popup .list-view .list-cell:filled:hover {
+    -fx-background-color: -pb-accent-soft;
+    -fx-text-fill: -pb-text;
+}
+
+.toggle-button {
+    -fx-background-color: -pb-surface-2;
+    -fx-text-fill: -pb-text-dim;
+    -fx-border-color: -pb-line;
+    -fx-font-size: 12px;
+    -fx-cursor: hand;
+}
+.toggle-button:selected {
+    -fx-background-color: -pb-accent-soft;
+    -fx-text-fill: -pb-accent;
+    -fx-border-color: -pb-accent;
+}
+
+.slider .track { -fx-background-color: -pb-surface-2; -fx-background-radius: 3px; }
+.slider .thumb { -fx-background-color: -pb-accent; }
+.slider:disabled { -fx-opacity: 0.35; }
+
+.scroll-pane, .scroll-pane > .viewport { -fx-background-color: transparent; }
+.scroll-bar { -fx-background-color: transparent; }
+.scroll-bar .thumb { -fx-background-color: -pb-line; -fx-background-radius: 4px; }
+.scroll-bar .increment-button, .scroll-bar .decrement-button { -fx-opacity: 0; -fx-padding: 0; }
+
+/* ── Icônes vectorielles (IconFactory) ────────────────────────────────────── */
+
+.icon {
+    -fx-fill: -pb-text-dim;
+}
+.icon--accent { -fx-fill: -pb-accent; }
+.icon--on-accent { -fx-fill: -pb-accent-text; }
+
+/* ── Carte à jouer (CardView) ─────────────────────────────────────────────── */
+
+.card {
+    -fx-background-color: -pb-card-face;
+    -fx-background-radius: 5px;
+    -fx-border-color: derive(-pb-card-face, -22%);
+    -fx-border-radius: 5px;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.45), 6, 0, 0, 2);
+}
+.card .card__rank {
+    -fx-font-weight: bold;
+    -fx-fill: -pb-card-black;
+}
+.card .card__pip { -fx-fill: -pb-card-black; }
+
+/* Cœurs et carreaux */
+.card--red .card__rank, .card--red .card__pip { -fx-fill: -pb-card-red; }
+
+/* Carte distribuée mais cachée : dos dessiné, pas un rectangle plat */
+.card--back {
+    -fx-background-color: -pb-card-back;
+    -fx-border-color: derive(-pb-card-back, 35%);
+}
+.card--back .card__pattern {
+    -fx-stroke: derive(-pb-card-back, 45%);
+    -fx-stroke-width: 1.1;
+    -fx-fill: transparent;
+}
+
+/* Emplacement vide : contour discret, pas de carte */
+.card--empty {
+    -fx-background-color: rgba(255, 255, 255, 0.025);
+    -fx-border-color: -pb-line;
+    -fx-border-style: segments(4, 4);
+    -fx-effect: null;
+}
+
+/* ── Joueur (PlayerView) ──────────────────────────────────────────────────── */
+
+.seat {
+    -fx-background-color: -pb-surface;
+    -fx-background-radius: 8px;
+    -fx-border-color: -pb-line;
+    -fx-border-radius: 8px;
+    -fx-padding: 8 14 8 14;
+}
+/* C'est à ce joueur de parler */
+.seat--active {
+    -fx-background-color: -pb-surface-2;
+    -fx-border-color: -pb-accent;
+    -fx-border-width: 1.6;
+    -fx-effect: dropshadow(gaussian, -pb-accent-soft, 14, 0, 0, 0);
+}
+.seat__name { -fx-font-size: 13px; -fx-font-weight: bold; }
+.seat__position {
+    -fx-font-size: 10px;
+    -fx-text-fill: -pb-accent;
+    -fx-background-color: -pb-accent-soft;
+    -fx-background-radius: 3px;
+    -fx-padding: 1 6 1 6;
+}
+.seat__stack { -fx-font-size: 11px; -fx-text-fill: -pb-text-dim; }
+.seat__bet   { -fx-font-size: 11px; -fx-text-fill: -pb-accent; }
+
+/* ── Pot (PotView) ────────────────────────────────────────────────────────── */
+
+.pot__main {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -pb-text;
+    -fx-background-color: rgba(0, 0, 0, 0.3);
+    -fx-background-radius: 20px;
+    -fx-padding: 5 18 5 18;
+}
+.pot__side { -fx-font-size: 11px; -fx-text-fill: -pb-text-dim; }
+.pot__equity { -fx-font-size: 13px; -fx-font-weight: bold; -fx-text-fill: -pb-good; }
+
+/* ── Historique des coups (ActionTimeline) ────────────────────────────────── */
+
+.timeline { -fx-background-color: transparent; }
+.timeline__round {
+    -fx-font-size: 10px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -pb-accent;
+    -fx-padding: 8 0 2 0;
+}
+.timeline__entry {
+    -fx-font-size: 12px;
+    -fx-text-fill: -pb-text-dim;
+    -fx-padding: 2 6 2 8;
+    -fx-background-radius: 3px;
+}
+.timeline__entry--current {
+    -fx-text-fill: -pb-text;
+    -fx-background-color: -pb-accent-soft;
+}
+
+/* ── Graphe d'équité (EquityChart) ────────────────────────────────────────── */
+
+.chart-bar {
+    -fx-background-radius: 3px 3px 0 0;
+    -fx-background-color: -pb-accent;
+}
+.chart-bar--hero    { -fx-background-color: -pb-good; }
+.chart-bar--villain { -fx-background-color: -pb-bad; }
+.chart-bar--neutral { -fx-background-color: -pb-text-faint; }
+.chart__value { -fx-font-size: 11px; -fx-font-weight: bold; }
+.chart__name  { -fx-font-size: 11px; -fx-text-fill: -pb-text-dim; }
+
+/* ── Overlay non bloquant (fin de main) ───────────────────────────────────── */
+
+.overlay {
+    -fx-background-color: rgba(10, 11, 14, 0.55);
+}
+.overlay__box {
+    -fx-background-color: -pb-surface;
+    -fx-background-radius: 14px;
+    -fx-border-color: -pb-line;
+    -fx-border-radius: 14px;
+    -fx-padding: 26 44 26 44;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.6), 28, 0, 0, 8);
+}
+.overlay__title { -fx-font-size: 22px; -fx-font-weight: bold; }
+.overlay__detail { -fx-font-size: 14px; -fx-text-fill: -pb-text-dim; }
