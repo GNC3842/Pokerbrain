@@ -2,76 +2,87 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.BorderPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.shape.SVGPath?>
+<?import javafx.scene.text.TextFlow?>
 
+<!--
+  Menu principal. Aucun style inline : tout vient de theme.css / components.css /
+  screens.css, chargés une seule fois par MainApp sur la scène unique.
+-->
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="pokerbrain.ui.MenuController"
-            style="-fx-background-color: #0d3b1e;">
+            fx:controller="pokerbrain.ui.MenuController">
 
     <top>
-        <VBox alignment="CENTER">
-            <padding><Insets top="40" bottom="20"/></padding>
-            <Label text="♠ PokerBrain ♥"
-                   style="-fx-font-size: 52px; -fx-font-weight: bold; -fx-text-fill: #d4af37;"/>
-            <Label text="Analyse · Simulation · Entraînement"
-                   style="-fx-font-size: 16px; -fx-text-fill: #a09070; -fx-font-style: italic;"/>
+        <VBox alignment="CENTER" spacing="6">
+            <padding><Insets top="46" bottom="18"/></padding>
+            <TextFlow>
+                <Label text="Poker" styleClass="menu__title"/>
+                <Label text="Brain" styleClass="menu__title, menu__title-mark"/>
+            </TextFlow>
+            <Label text="Analyse · Simulation · Entraînement" styleClass="menu__subtitle"/>
         </VBox>
     </top>
 
     <center>
-        <VBox alignment="CENTER" spacing="20">
-        	<HBox alignment="CENTER" spacing="10">
-    			<Label text="Adversaires :" style="-fx-text-fill: #a09070; -fx-font-size: 13px;"/>
-    			<ComboBox fx:id="numberOfBots" prefWidth="130"	style="-fx-background-color: #163d24;"/>
-			</HBox>
-            <Button text="▶  Jouer une partie"
-                    prefWidth="340" prefHeight="60"
-                    style="-fx-font-size: 18px; -fx-font-weight: bold;
-                           -fx-background-color: #2ecc71; -fx-text-fill: white;
-                           -fx-background-radius: 8px;"
-                    onAction="#onPlayGame"/>
+        <VBox alignment="CENTER" spacing="16">
+            <padding><Insets left="20" right="20"/></padding>
 
-            <Button text="📊  Calculateur d'équité"
-                    prefWidth="340" prefHeight="60"
-                    style="-fx-font-size: 18px; -fx-font-weight: bold;
-                           -fx-background-color: #8e44ad; -fx-text-fill: white;
-                           -fx-background-radius: 8px;"
-                    onAction="#onLeakAnalyzer"/>
+            <HBox alignment="CENTER" spacing="10">
+                <Label text="Adversaires" styleClass="muted"/>
+                <ComboBox fx:id="numberOfBots" minWidth="120"/>
+            </HBox>
 
-            <Button text="📈  Statistiques"
-                    prefWidth="340" prefHeight="60"
-                    style="-fx-font-size: 18px; -fx-font-weight: bold;
-                           -fx-background-color: #d35400; -fx-text-fill: white;
-                           -fx-background-radius: 8px;"
-                    onAction="#onStatistics"/>
-                    
-    		<HBox alignment="CENTER" spacing="10">
-    			<ComboBox fx:id="replayCombo" prefWidth="260"
-              		style="-fx-background-color: #163d24;"/>
-    				<Button text="⏮ Revoir" prefWidth="110" prefHeight="40"
-            		style="-fx-font-size: 14px; -fx-font-weight: bold;
-                   		-fx-background-color: #2980b9; -fx-text-fill: white;
-                   		-fx-background-radius: 8px;"
-            		onAction="#onReplay"/>
-			</HBox>
-			<Label fx:id="handsCountLabel" text="0 main en historique"
-       style="-fx-text-fill: #556b55; -fx-font-size: 11px;"/>
+            <Button text="Jouer une partie" onAction="#onPlayGame"
+                    styleClass="btn, btn--primary, menu__action">
+                <graphic>
+                    <SVGPath content="M4 3 L13 8 L4 13 Z" styleClass="icon, icon--on-accent"/>
+                </graphic>
+            </Button>
+
+            <Button text="Calculateur d'équité" onAction="#onLeakAnalyzer"
+                    styleClass="btn, menu__action">
+                <graphic>
+                    <SVGPath styleClass="icon"
+                             content="M7 1.5 A5.5 5.5 0 1 0 7 12.5 A5.5 5.5 0 1 0 7 1.5 Z
+                                      M7 3.5 A3.5 3.5 0 1 1 7 10.5 A3.5 3.5 0 1 1 7 3.5 Z
+                                      M10.9 10.2 L14.5 13.8 L13.4 14.9 L9.8 11.3 Z"/>
+                </graphic>
+            </Button>
+
+            <Button text="Statistiques et fuites" onAction="#onStatistics"
+                    styleClass="btn, menu__action">
+                <graphic>
+                    <SVGPath styleClass="icon"
+                             content="M2 14 L5 14 L5 8 L2 8 Z M6.5 14 L9.5 14 L9.5 2 L6.5 2 Z
+                                      M11 14 L14 14 L14 6 L11 6 Z"/>
+                </graphic>
+            </Button>
+
+            <HBox alignment="CENTER" spacing="10">
+                <padding><Insets top="10"/></padding>
+                <ComboBox fx:id="replayCombo" minWidth="240"/>
+                <Button text="Revoir" onAction="#onReplay" styleClass="btn, btn--outline">
+                    <graphic>
+                        <SVGPath content="M7 2 L7 7 L14 7 L14 9 L7 9 L7 14 L1 8 Z"
+                                 styleClass="icon, icon--accent"/>
+                    </graphic>
+                </Button>
+            </HBox>
+
+            <Label fx:id="handsCountLabel" text="0 main en historique" styleClass="faint"/>
         </VBox>
     </center>
 
     <bottom>
         <HBox alignment="CENTER_RIGHT">
-            <padding><Insets bottom="15" right="20"/></padding>
-            <Button text="Quitter"
-                    style="-fx-background-color: transparent; -fx-text-fill: #a09070;
-                           -fx-border-color: #a09070; -fx-border-radius: 4px;
-                           -fx-padding: 4 12 4 12;"
-                    onAction="#onQuit"/>
+            <padding><Insets bottom="16" right="20"/></padding>
+            <Button text="Quitter" onAction="#onQuit" styleClass="btn, btn--ghost"/>
         </HBox>
     </bottom>
 
