@@ -1,4 +1,5 @@
 package pokerbrain.ui;
+import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -6,6 +7,7 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.Slider;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.StackPane;
 import javafx.scene.layout.VBox;
 import javafx.util.Duration;
 import pokerbrain.bot.Bot;
@@ -52,6 +54,10 @@ public class GameController {
     @FXML private Slider raiseSlider;
     @FXML private Label  raiseAmountLabel;
 
+    @FXML private StackPane overlay;
+    @FXML private Label     overlayTitle;
+    @FXML private Label     overlayDetail;
+
 
     private PlayerView     hero;
     private PotView        potView;
@@ -75,7 +81,7 @@ public class GameController {
         potContainer.getChildren().add(potView);
 
         equityLabel = new Label();
-        equityLabel.setStyle("-fx-text-fill: #7fcf9f; -fx-font-size: 14px; -fx-font-weight: bold;");
+        equityLabel.getStyleClass().addAll("pot__equity", "num");
         potContainer.getChildren().add(equityLabel);
 
         timeline = new ActionTimeline();
@@ -157,12 +163,13 @@ public class GameController {
 
     private void startNewHand() {
         try {
+            masquerAnnonce();
             clearHistory();
             for (CardView cv : communityCards) cv.showEmpty();
             session.startNewHand();
             refreshAllPlayerViews();
             updatePotLabel();
-            setRound(session.getGame().getCurrentRound().name());
+            setRound(session.getGame().getCurrentRound().getLabel());
             processTurn();
         } catch (Exception e) {
             System.err.println("Impossible de démarrer une nouvelle main : " + e.getMessage());
@@ -178,7 +185,7 @@ public class GameController {
         }
 
         updatePotLabel();
-        setRound(session.getGame().getCurrentRound().name());
+        setRound(session.getGame().getCurrentRound().getLabel());
 
         if (session.getGame().isRoundComplete()) {
             PauseTransition pause = new PauseTransition(Duration.millis(400));
@@ -217,7 +224,7 @@ public class GameController {
             }
             List<Card> board = session.getGame().getBoard();
             revealCommunityCards(board.toArray(new Card[0]));
-            setRound(session.getGame().getCurrentRound().name());
+            setRound(session.getGame().getCurrentRound().getLabel());
             updatePotLabel();
             processTurn();
         } catch (Exception e) {
@@ -238,54 +245,36 @@ public class GameController {
                     // Main abattue en clair : « Full aux Rois » plutôt qu'une classe 1-7462
                     HandRank rank = FastHandEvaluator.describeBestHand(p.getHoleCards(), board);
                     if (rank != null)
-                        addActionToHistory("SHOWDOWN", p.getName(), rank.describe());
+                        addActionToHistory("Abattage", p.getName(), rank.describe());
                 }
             }
             for (Map.Entry<Player, Integer> e : winnings.entrySet()) {
                 if (e.getValue() > 0)
-                    addActionToHistory("SHOWDOWN", e.getKey().getName(),
-                        "Wins " + e.getValue() + " chips.");
+                    addActionToHistory("Abattage", e.getKey().getName(),
+                        "gagne " + e.getValue() + " jetons");
             }
             refreshAllPlayerViews(true);
         } catch (Exception e) {
             System.err.println("Erreur showdown : " + e.getMessage());
         }
 
-        // Popup résultat (déféré pour éviter le conflit avec l'animation)
         Player heroPlayer = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
         int heroWin = winnings.getOrDefault(heroPlayer, 0);
-
-        javafx.application.Platform.runLater(() -> {
-            javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-                heroWin > 0
-                    ? javafx.scene.control.Alert.AlertType.INFORMATION
-                    : javafx.scene.control.Alert.AlertType.WARNING
-            );
-            alert.setTitle("End of hand");
-            alert.setHeaderText(heroWin > 0 ? "You win!" : "You lose");
-            alert.setContentText(heroWin > 0
-                ? "Winnings: +" + heroWin + " chips"
-                : "You did not win this hand.");
-            alert.showAndWait();
-            handleHandOver();
-        });
-        return; // ← IMPORTANT : on sort de handleShowdown() sans appeler handleHandOver() ici
+        annoncer(heroWin > 0 ? "Main gagnée" : "Main perdue",
+                 heroWin > 0 ? "+ " + heroWin + " jetons"
+                             : "L'adversaire remporte le pot.");
+        handleHandOver();
     }
 
     private void handleHandOver() {
         SessionData.addHand(session.buildAndCloseHand());
-        // Popup si le héro gagne par fold des adversaires
+
     	Player heroPlayer = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
     	if (!heroPlayer.isFolded() && !heroPlayer.isOut()) {
     	    long activePlayers = session.getGame().getPlayers().stream()
     	        .filter(p -> !p.isFolded() && !p.isOut()).count();
     	    if (activePlayers == 1) {
-    	        javafx.scene.control.Alert alert = new javafx.scene.control.Alert(
-    	            javafx.scene.control.Alert.AlertType.INFORMATION);
-    	        alert.setTitle("End of hand");
-    	        alert.setHeaderText("You win the pot!");
-    	        alert.setContentText("All opponents folded.");
-    	        alert.show(); // ← show() sans Wait, pas de blocage
+    	        annoncer("Pot remporté", "Tous les adversaires se sont couchés.");
     	    }
     	}
         disableActions();
@@ -299,6 +288,34 @@ public class GameController {
             else                      startNewHand();
         });
         pause.play();
+    }
+
+    /**
+     * Annonce de fin de main, superposée à la table.
+     *
+     * Remplace les `Alert` natifs : `showAndWait()` bloquait le thread FX au milieu des
+     * `PauseTransition` de la boucle de jeu (la main suivante démarrait pendant que la
+     * fenêtre modale était encore ouverte), et la fenêtre système ignorait complètement le
+     * thème. L'overlay vit dans la scène, ne bloque rien, et s'effface tout seul.
+     */
+    private void annoncer(String titre, String detail) {
+        overlayTitle.setText(titre);
+        overlayDetail.setText(detail);
+        overlay.setVisible(true);
+        overlay.setManaged(true);
+        overlay.setOpacity(1);
+
+        FadeTransition fondu = new FadeTransition(Duration.millis(500), overlay);
+        fondu.setDelay(Duration.millis(1400));
+        fondu.setFromValue(1);
+        fondu.setToValue(0);
+        fondu.setOnFinished(e -> masquerAnnonce());
+        fondu.play();
+    }
+
+    private void masquerAnnonce() {
+        overlay.setVisible(false);
+        overlay.setManaged(false);
     }
 
     // ── Bots ──────────────────────────────────────────────────────────────────
@@ -390,16 +407,16 @@ public class GameController {
         checkCallButton.setDisable(!canCheck && !canCall);
         if (canCall) {
             int callAmt = session.getGame().getCallAmount();
-            checkCallButton.setText(String.format("Call (%d chips)", callAmt));
+            checkCallButton.setText("Suivre " + callAmt);
         } else {
-            checkCallButton.setText("Check");
+            checkCallButton.setText("Parole");
         }
 
         boolean canRaise = valid.contains(ActionType.RAISE);
         boolean canBet   = valid.contains(ActionType.BET);
         boolean canAllIn = valid.contains(ActionType.ALL_IN);
         raiseButton.setDisable(!canRaise && !canBet && !canAllIn);
-        raiseButton.setText(canRaise ? "Raise" : canBet ? "Bet" : "All-in");
+        raiseButton.setText(canRaise ? "Relancer" : canBet ? "Miser" : "Tapis");
 
         if (canRaise || canBet) {
             Player heroPlayer = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
@@ -489,12 +506,12 @@ public class GameController {
     private void updatePotLabel() {
         int pot = session.getGame().getTotalPot();
         potView.setPot(pot);
-        potLabel.setText(pot + " chips");
+        potLabel.setText(String.valueOf(pot));
     }
 
     private void logAction(Action action) {
         addActionToHistory(
-            action.getRound().name(),
+            action.getRound().getLabel(),
             action.getPlayer().getName(),
             formatAction(action)
         );
@@ -502,12 +519,12 @@ public class GameController {
 
     private String formatAction(Action action) {
         return switch (action.getType()) {
-            case FOLD   -> "Fold";
-            case CHECK  -> "Check";
-            case CALL   -> "Call (" + action.getAmount() + " j.)";
-            case BET    -> "Bet " + action.getAmount() + " j.";
-            case RAISE  -> "Raise " + action.getAmount() + " j.";
-            case ALL_IN -> "All-in (" + action.getAmount() + " j.)";
+            case FOLD   -> "se couche";
+            case CHECK  -> "parole";
+            case CALL   -> "suit " + action.getAmount();
+            case BET    -> "mise " + action.getAmount();
+            case RAISE  -> "relance " + action.getAmount();
+            case ALL_IN -> "tapis " + action.getAmount();
         };
     }
 
@@ -522,7 +539,7 @@ public class GameController {
 
     public void updatePot(double amountInBB) {
         potView.setPot(amountInBB);
-        potLabel.setText(String.format("%.1f chips", amountInBB));
+        potLabel.setText(String.format("%.0f", amountInBB));
     }
 
     public void configureRaiseSlider(double heroStack) {
