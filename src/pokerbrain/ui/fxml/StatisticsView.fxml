@@ -3,151 +3,115 @@
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.control.Separator?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.HBox?>
-<?import javafx.scene.layout.VBox?>
 <?import javafx.scene.layout.Region?>
-<?import javafx.scene.layout.GridPane?>
-<?import javafx.geometry.HPos?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml/1"
-            fx:controller="pokerbrain.ui.StatisticsController"
-            style="-fx-background-color: #0d3b1e;">
+            fx:controller="pokerbrain.ui.StatisticsController">
 
-    <!-- En-tête -->
     <top>
-        <HBox alignment="CENTER_LEFT" spacing="12"
-              style="-fx-background-color: #0a2e18; -fx-padding: 14 20 14 20;">
-            <Label text="📈" style="-fx-font-size: 20px;"/>
-            <Label text="Statistiques"
-                   style="-fx-font-size: 18px; -fx-font-weight: bold; -fx-text-fill: white;"/>
+        <HBox alignment="CENTER_LEFT" spacing="12" styleClass="topbar">
+            <SVGPath styleClass="icon, icon--accent"
+                     content="M2 14 L5 14 L5 8 L2 8 Z M6.5 14 L9.5 14 L9.5 2 L6.5 2 Z
+                              M11 14 L14 14 L14 6 L11 6 Z"/>
+            <Label text="Statistiques et fuites" styleClass="title"/>
             <Region HBox.hgrow="ALWAYS"/>
-            <Button text="← Menu" onAction="#onBackToMenu"
-                    style="-fx-background-color: transparent; -fx-text-fill: #a09070;
-                           -fx-border-color: #a09070; -fx-border-radius: 4px;
-                           -fx-padding: 4 12 4 12; -fx-font-size: 12px;"/>
+            <Button text="Menu" onAction="#onBackToMenu" styleClass="btn, btn--ghost"/>
         </HBox>
     </top>
 
-    <!-- Contenu principal -->
+    <!--
+      ScrollPane + FlowPane : les tuiles se réorganisent quand la fenêtre descend à sa
+      largeur minimale (900 px) au lieu d'être coupées par des prefWidth en dur.
+    -->
     <center>
-        <VBox spacing="16">
-            <padding><Insets top="20" bottom="20" left="20" right="20"/></padding>
+        <ScrollPane fitToWidth="true">
+            <VBox spacing="14">
+                <padding><Insets top="16" bottom="16" left="16" right="16"/></padding>
 
-            <!-- Grille de statistiques principales -->
-            <HBox spacing="16">
+                <HBox spacing="14">
 
-                <!-- Colonne 1 : stats VPIP/PFR -->
-                <VBox spacing="12" HBox.hgrow="ALWAYS"
-                      style="-fx-background-color: #163d24; -fx-background-radius: 8px; -fx-padding: 16;">
-                    <Label text="Statistiques de base"
-                           style="-fx-text-fill: #d4af37; -fx-font-size: 13px; -fx-font-weight: bold;"/>
-                    <Separator style="-fx-background-color: #1a5c32;"/>
+                    <VBox spacing="12" styleClass="panel" HBox.hgrow="ALWAYS" minWidth="360">
+                        <Label text="Statistiques de base" styleClass="section-title"/>
+                        <Separator/>
+                        <FlowPane hgap="14" vgap="14">
 
-                    <HBox spacing="10" alignment="CENTER_LEFT">
-                        <VBox spacing="2" prefWidth="120">
-                            <Label text="VPIP" style="-fx-text-fill: #a09070; -fx-font-size: 11px;"/>
-                            <Label fx:id="vpipLabel" text="—"
-                                   style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
-                            <Label text="Vol. Put $ in Pot"
-                                   style="-fx-text-fill: #3a6640; -fx-font-size: 10px;"/>
-                        </VBox>
-                        <VBox spacing="2" prefWidth="120">
-                            <Label text="PFR" style="-fx-text-fill: #a09070; -fx-font-size: 11px;"/>
-                            <Label fx:id="pfrLabel" text="—"
-                                   style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
-                            <Label text="Pre-Flop Raise"
-                                   style="-fx-text-fill: #3a6640; -fx-font-size: 10px;"/>
-                        </VBox>
-                        <VBox spacing="2" prefWidth="120">
-                            <Label text="3-Bet%" style="-fx-text-fill: #a09070; -fx-font-size: 11px;"/>
-                            <Label fx:id="threeBetLabel" text="—"
-                                   style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
-                            <Label text="Fréquence 3-bet"
-                                   style="-fx-text-fill: #3a6640; -fx-font-size: 10px;"/>
-                        </VBox>
-                    </HBox>
+                            <VBox spacing="2" styleClass="stat-tile">
+                                <Label text="VPIP" styleClass="stat-tile__label"/>
+                                <Label fx:id="vpipLabel" text="—" styleClass="stat-tile__value, num"/>
+                                <Label text="mains jouées volontairement" styleClass="stat-tile__hint"/>
+                            </VBox>
+                            <VBox spacing="2" styleClass="stat-tile">
+                                <Label text="PFR" styleClass="stat-tile__label"/>
+                                <Label fx:id="pfrLabel" text="—" styleClass="stat-tile__value, num"/>
+                                <Label text="relances préflop" styleClass="stat-tile__hint"/>
+                            </VBox>
+                            <VBox spacing="2" styleClass="stat-tile">
+                                <Label text="3-bet" styleClass="stat-tile__label"/>
+                                <Label fx:id="threeBetLabel" text="—" styleClass="stat-tile__value, num"/>
+                                <Label text="sur-relances préflop" styleClass="stat-tile__hint"/>
+                            </VBox>
+                            <VBox spacing="2" styleClass="stat-tile">
+                                <Label text="WTSD" styleClass="stat-tile__label"/>
+                                <Label fx:id="wtsdLabel" text="—" styleClass="stat-tile__value, num"/>
+                                <Label text="abattages atteints" styleClass="stat-tile__hint"/>
+                            </VBox>
+                            <VBox spacing="2" styleClass="stat-tile">
+                                <Label text="W$SD" styleClass="stat-tile__label"/>
+                                <Label fx:id="wsdLabel" text="—" styleClass="stat-tile__value, num"/>
+                                <Label text="abattages gagnés" styleClass="stat-tile__hint"/>
+                            </VBox>
+                            <VBox spacing="2" styleClass="stat-tile">
+                                <Label text="BB/100" styleClass="stat-tile__label"/>
+                                <Label fx:id="bbPer100Label" text="—" styleClass="stat-tile__value, num"/>
+                                <Label text="gain pour 100 mains" styleClass="stat-tile__hint"/>
+                            </VBox>
 
-                    <HBox spacing="10" alignment="CENTER_LEFT">
-                        <VBox spacing="2" prefWidth="120">
-                            <Label text="WTSD%" style="-fx-text-fill: #a09070; -fx-font-size: 11px;"/>
-                            <Label fx:id="wtsdLabel" text="—"
-                                   style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
-                            <Label text="Went to Showdown"
-                                   style="-fx-text-fill: #3a6640; -fx-font-size: 10px;"/>
-                        </VBox>
-                        <VBox spacing="2" prefWidth="120">
-                            <Label text="W$SD%" style="-fx-text-fill: #a09070; -fx-font-size: 11px;"/>
-                            <Label fx:id="wsdLabel" text="—"
-                                   style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
-                            <Label text="Won $ at Showdown"
-                                   style="-fx-text-fill: #3a6640; -fx-font-size: 10px;"/>
-                        </VBox>
-                        <VBox spacing="2" prefWidth="120">
-                            <Label text="BB/100" style="-fx-text-fill: #a09070; -fx-font-size: 11px;"/>
-                            <Label fx:id="bbPer100Label" text="—"
-                                   style="-fx-text-fill: white; -fx-font-size: 24px; -fx-font-weight: bold;"/>
-                            <Label text="Win rate"
-                                   style="-fx-text-fill: #3a6640; -fx-font-size: 10px;"/>
-                        </VBox>
-                    </HBox>
-                </VBox>
-
-                <!-- Colonne 2 : résumé mains jouées -->
-                <VBox spacing="10" prefWidth="220"
-                      style="-fx-background-color: #163d24; -fx-background-radius: 8px; -fx-padding: 16;">
-                    <Label text="Session"
-                           style="-fx-text-fill: #d4af37; -fx-font-size: 13px; -fx-font-weight: bold;"/>
-                    <Separator style="-fx-background-color: #1a5c32;"/>
-                    <VBox spacing="6">
-                        <HBox spacing="8" alignment="CENTER_LEFT">
-                            <Label text="Mains jouées :"
-                                   style="-fx-text-fill: #a09070; -fx-font-size: 12px;"/>
-                            <Label fx:id="handsPlayedLabel" text="—"
-                                   style="-fx-text-fill: white; -fx-font-size: 12px; -fx-font-weight: bold;"/>
-                        </HBox>
-                        <HBox spacing="8" alignment="CENTER_LEFT">
-                            <Label text="Gain total :"
-                                   style="-fx-text-fill: #a09070; -fx-font-size: 12px;"/>
-                            <Label fx:id="totalGainLabel" text="—"
-                                   style="-fx-text-fill: #7fcf9f; -fx-font-size: 12px; -fx-font-weight: bold;"/>
-                        </HBox>
-                        <HBox spacing="8" alignment="CENTER_LEFT">
-                            <Label text="Plus grosse main :"
-                                   style="-fx-text-fill: #a09070; -fx-font-size: 12px;"/>
-                            <Label fx:id="biggestHandLabel" text="—"
-                                   style="-fx-text-fill: white; -fx-font-size: 12px;"/>
-                        </HBox>
+                        </FlowPane>
                     </VBox>
-                    <Button text="Charger des données" onAction="#onLoadData"
-                            prefHeight="36"
-                            style="-fx-background-color: #1a4a2e; -fx-text-fill: white;
-                                   -fx-border-color: #2a7a4e; -fx-border-radius: 5px;
-                                   -fx-background-radius: 5px; -fx-font-size: 12px;"/>
+
+                    <VBox spacing="10" styleClass="panel" minWidth="210">
+                        <Label text="Session" styleClass="section-title"/>
+                        <Separator/>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Label text="Mains jouées" styleClass="muted"/>
+                            <Label fx:id="handsPlayedLabel" text="—" styleClass="num"/>
+                        </HBox>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Label text="Gain total" styleClass="muted"/>
+                            <Label fx:id="totalGainLabel" text="—" styleClass="num"/>
+                        </HBox>
+                        <HBox spacing="8" alignment="CENTER_LEFT">
+                            <Label text="Plus grosse main" styleClass="muted"/>
+                            <Label fx:id="biggestHandLabel" text="—" styleClass="num"/>
+                        </HBox>
+                        <Region VBox.vgrow="ALWAYS"/>
+                        <Button text="Recharger l'historique" onAction="#onLoadData"
+                                styleClass="btn, btn--outline" maxWidth="Infinity"/>
+                    </VBox>
+
+                </HBox>
+
+                <VBox spacing="10" styleClass="panel">
+                    <Label text="Fuites détectées" styleClass="section-title"/>
+                    <Separator/>
+                    <VBox fx:id="leaksContainer" spacing="8"/>
                 </VBox>
 
-            </HBox>
+                <VBox fx:id="statsChartContainer" spacing="10" styleClass="panel">
+                    <Label text="Profil de jeu" styleClass="section-title"/>
+                    <Separator/>
+                </VBox>
 
-            <!-- Zone des leaks détectés -->
-            <VBox spacing="10"
-                  style="-fx-background-color: #163d24; -fx-background-radius: 8px; -fx-padding: 16;">
-                <Label text="Leaks détectés"
-                       style="-fx-text-fill: #d4af37; -fx-font-size: 13px; -fx-font-weight: bold;"/>
-                <Separator style="-fx-background-color: #1a5c32;"/>
-                <VBox fx:id="leaksContainer" spacing="8"/>
             </VBox>
-
-            <!-- Graphique (peuplé par StatisticsController) -->
-            <VBox fx:id="statsChartContainer" VBox.vgrow="ALWAYS"
-                  style="-fx-background-color: #163d24; -fx-background-radius: 8px; -fx-padding: 16;">
-                <Label text="Évolution du win rate"
-                       style="-fx-text-fill: #d4af37; -fx-font-size: 13px; -fx-font-weight: bold;"/>
-                <Separator style="-fx-background-color: #1a5c32;"/>
-            </VBox>
-
-        </VBox>
+        </ScrollPane>
     </center>
 
 </BorderPane>
