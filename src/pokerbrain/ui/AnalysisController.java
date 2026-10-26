@@ -85,7 +85,6 @@ public class AnalysisController {
             villainHandBox.setManaged(selected);
             villainRangeBox.setVisible(!selected);
             villainRangeBox.setManaged(!selected);
-            updateToggleStyles();
         });
         toggleRangeMode.selectedProperty().addListener((obs, o, selected) -> {
             if (!selected && !toggleHandMode.isSelected()) { toggleHandMode.setSelected(true); return; }
@@ -93,7 +92,6 @@ public class AnalysisController {
             villainHandBox.setManaged(!selected);
             villainRangeBox.setVisible(selected);
             villainRangeBox.setManaged(selected);
-            updateToggleStyles();
         });
     }
 
@@ -193,20 +191,6 @@ public class AnalysisController {
             return Card.fromString(notation.trim());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(fieldName + " invalide : « " + notation + " »");
-        }
-    }
-
-    private void updateToggleStyles() {
-        String active   = "-fx-background-color: #8e44ad; -fx-text-fill: white; -fx-font-size: 12px;" +
-                          "-fx-background-radius: 4px 0 0 4px; -fx-border-color: #8e44ad; -fx-border-radius: 4px 0 0 4px;";
-        String inactive = "-fx-background-color: #0a2e18; -fx-text-fill: #a09070; -fx-font-size: 12px;" +
-                          "-fx-background-radius: 0 4px 4px 0; -fx-border-color: #2a7a4e; -fx-border-radius: 0 4px 4px 0;";
-        if (toggleHandMode.isSelected()) {
-            toggleHandMode.setStyle(active);
-            toggleRangeMode.setStyle(inactive);
-        } else {
-            toggleHandMode.setStyle(inactive.replace("0 4px 4px 0", "4px 0 0 4px"));
-            toggleRangeMode.setStyle(active.replace("4px 0 0 4px", "0 4px 4px 0"));
         }
     }
 

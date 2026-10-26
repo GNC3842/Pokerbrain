@@ -53,7 +53,7 @@ public class ReplayController {
 
         adviceLabel = new Label();
         adviceLabel.setWrapText(true);
-        adviceLabel.setStyle("-fx-text-fill: #c8d8c8; -fx-font-size: 12px; -fx-padding: 8;");
+        adviceLabel.getStyleClass().add("advice");
         equityContainer.getChildren().add(adviceLabel);
 
         communityCards = new CardView[5];
@@ -68,7 +68,7 @@ public class ReplayController {
         heroCard1 = new CardView();
         heroCard2 = new CardView();
         heroCardsBox.getChildren().addAll(
-            new Label("Vos cartes : ") {{ setStyle("-fx-text-fill: #a09070; -fx-font-size: 11px;"); }},
+            etiquette("Vos cartes"),
             heroCard1, heroCard2
         );
         equityContainer.getChildren().add(0, heroCardsBox);
@@ -104,7 +104,7 @@ public class ReplayController {
             String actionStr = a.getType().involvesMoney()
                 ? a.getType() + " " + a.getAmount()
                 : a.getType().toString();
-            timeline.addAction(a.getRound().toString(), a.getPlayer().getName(), actionStr);
+            timeline.addAction(a.getRound().getLabel(), a.getPlayer().getName(), actionStr);
         }
 
         adviceMap = new HashMap<>();
@@ -203,7 +203,7 @@ public class ReplayController {
 
         Action action = actions.get(index);
 
-        stepRoundLabel.setText(action.getRound().toString());
+        stepRoundLabel.setText(action.getRound().getLabel());
         String actionStr = action.getType().involvesMoney()
             ? action.getType() + " " + action.getAmount()
             : action.getType().toString();
@@ -212,7 +212,7 @@ public class ReplayController {
         // Board : depuis GameState si disponible, sinon depuis Hand.getBoard() + round
         if (index < states.size()) {
             GameState gs = states.get(index);
-            stepPotLabel.setText(String.format("Pot : %d", gs.getTotalPot()));
+            stepPotLabel.setText("Pot " + gs.getTotalPot());
             List<Card> board = gs.getBoard();
             for (int i = 0; i < 5; i++) {
                 if (board != null && i < board.size()) communityCards[i].showCard(board.get(i));
@@ -233,7 +233,7 @@ public class ReplayController {
                 else
                     communityCards[i].showEmpty();
             }
-            stepPotLabel.setText("Pot : -");
+            stepPotLabel.setText("Pot —");
         }
 
         stepCounterLabel.setText("Étape " + (index + 1) + " / " + actions.size());
@@ -247,27 +247,26 @@ public class ReplayController {
 
         if (advice == null) {
             if (analysisPending) {
-                setAdviceText("Analyse en cours…", "#a09070");
+                setAdviceText("Analyse en cours…", null);
             } else if (analysisError != null) {
-                setAdviceText("L'analyse de cette main a échoué : " + analysisError, "#e74c3c");
+                setAdviceText("L'analyse de cette main a échoué : " + analysisError, "score--bad");
             } else {
                 // Pas de conseil sur cette action (ce n'est pas une action du héro) :
                 // on remet le résumé de la main plutôt qu'un panneau vide.
-                setAdviceText(handSummary == null ? "" : handSummary, "#d4af37");
+                setAdviceText(handSummary == null ? "" : handSummary, null);
             }
             return;
         }
 
         // Action non analysable : afficher le motif plutôt qu'un score trompeur à 0/100
         if (!advice.isAnalysable()) {
-            setAdviceText(advice.getReasoning(), "#a09070");
+            setAdviceText(advice.getReasoning(), null);
             return;
         }
 
-        String color;
-        if (advice.getScore() >= 80) color = "#2ecc71";
-        else if (advice.getScore() >= 50) color = "#f39c12";
-        else color = "#e74c3c";
+        String severite = advice.getScore() >= 80 ? "score--good"
+                        : advice.getScore() >= 50 ? "score--mid"
+                        : "score--bad";
 
         StringBuilder text = new StringBuilder();
         text.append("Score : ").append(advice.getScore()).append("/100\n");
@@ -279,18 +278,28 @@ public class ReplayController {
             text.append(String.format("%nEV perdue : %.1f BB", advice.getEvDelta()));
         }
 
-        setAdviceText(text.toString(), color);
+        setAdviceText(text.toString(), severite);
 
         if (advice.getEquity() >= 0) {
             equityChart.setHeroVillain(advice.getEquity() * 100);
         }
     }
 
-    private void setAdviceText(String text, String color) {
+    /**
+     * Pose le texte du conseil et sa classe de sévérité (`score--good` / `--mid` / `--bad`
+     * de theme.css) au lieu d'une couleur en dur : l'échelle d'analyse est définie une
+     * seule fois, dans la palette.
+     */
+    private void setAdviceText(String text, String severite) {
         adviceLabel.setText(text);
-        adviceLabel.setStyle("-fx-text-fill: " + color
-            + "; -fx-font-size: 12px; -fx-padding: 8;"
-            + "-fx-background-color: #0f3020; -fx-background-radius: 6px;");
+        adviceLabel.getStyleClass().setAll("advice");
+        if (severite != null) adviceLabel.getStyleClass().add(severite);
+    }
+
+    private static Label etiquette(String texte) {
+        Label label = new Label(texte);
+        label.getStyleClass().add("muted");
+        return label;
     }
 
     @FXML private void onPrevStep()  { if (currentStep > 0) showStep(--currentStep); }
