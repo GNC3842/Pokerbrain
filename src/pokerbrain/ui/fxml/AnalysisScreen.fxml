@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ScrollPane?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
+
+<!--
+  Écran « Analyse » unique, à deux modes : rejouer une main enregistrée, ou explorer un
+  spot libre. Les deux écrans d'avant (ReplayScreen, AnalysisPanel) ne partageaient rien
+  alors qu'ils affichaient la même chose — un board, des cartes, une équité.
+-->
+<BorderPane xmlns="http://javafx.com/javafx/21"
+            xmlns:fx="http://javafx.com/fxml/1"
+            fx:controller="pokerbrain.ui.AnalysisScreenController">
+
+    <top>
+        <HBox alignment="CENTER_LEFT" spacing="14" styleClass="topbar">
+            <SVGPath styleClass="icon, icon--accent"
+                     content="M7 1.5 A5.5 5.5 0 1 0 7 12.5 A5.5 5.5 0 1 0 7 1.5 Z
+                              M7 3.5 A3.5 3.5 0 1 1 7 10.5 A3.5 3.5 0 1 1 7 3.5 Z
+                              M10.9 10.2 L14.5 13.8 L13.4 14.9 L9.8 11.3 Z"/>
+            <Label text="Analyse" styleClass="title"/>
+
+            <HBox spacing="0">
+                <padding><Insets left="16"/></padding>
+                <fx:define><ToggleGroup fx:id="modeGroup"/></fx:define>
+                <ToggleButton fx:id="modeReplay" text="Rejouer une main"
+                              toggleGroup="$modeGroup" selected="true"
+                              styleClass="btn" minHeight="30"/>
+                <ToggleButton fx:id="modeSpot" text="Explorer un spot"
+                              toggleGroup="$modeGroup" styleClass="btn" minHeight="30"/>
+            </HBox>
+
+            <Region HBox.hgrow="ALWAYS"/>
+            <Button text="Menu" onAction="#onBackToMenu" styleClass="btn, btn--ghost"/>
+        </HBox>
+    </top>
+
+    <center>
+        <StackPane>
+
+            <!-- ── Mode replay ──────────────────────────────────────────────── -->
+            <HBox fx:id="replayPane" spacing="14">
+                <padding><Insets top="14" bottom="8" left="14" right="14"/></padding>
+
+                <VBox spacing="8" styleClass="panel" minWidth="230" prefWidth="270">
+                    <Label text="Déroulé de la main" styleClass="section-title"/>
+                    <Separator/>
+                    <VBox fx:id="timelineBox" VBox.vgrow="ALWAYS"/>
+                    <Separator/>
+                    <Label fx:id="handSummaryLabel" styleClass="faint" wrapText="true"/>
+                </VBox>
+
+                <VBox spacing="12" HBox.hgrow="ALWAYS">
+                    <StackPane fx:id="tableBox" VBox.vgrow="ALWAYS" minHeight="260"/>
+                    <VBox fx:id="curveBox" spacing="4" styleClass="panel">
+                        <Label text="Équité du héro au fil de la main" styleClass="muted"/>
+                    </VBox>
+                </VBox>
+
+                <ScrollPane fitToWidth="true" minWidth="280" prefWidth="330">
+                    <VBox fx:id="adviceBox" spacing="12"/>
+                </ScrollPane>
+            </HBox>
+
+            <!-- ── Mode spot libre ──────────────────────────────────────────── -->
+            <HBox fx:id="spotPane" spacing="14" visible="false" managed="false">
+                <padding><Insets top="14" bottom="8" left="14" right="14"/></padding>
+
+                <ScrollPane fitToWidth="true" minWidth="320" prefWidth="380">
+                    <VBox fx:id="pickersBox" spacing="12"/>
+                </ScrollPane>
+
+                <VBox spacing="12" HBox.hgrow="ALWAYS">
+                    <VBox spacing="8" styleClass="panel">
+                        <Label text="Résultat" styleClass="section-title"/>
+                        <Separator/>
+                        <HBox spacing="32" alignment="CENTER">
+                            <VBox spacing="4" alignment="CENTER">
+                                <Label text="Vous" styleClass="muted"/>
+                                <Label fx:id="heroEquityLabel" text="—" styleClass="equity__big, num"/>
+                            </VBox>
+                            <VBox spacing="4" alignment="CENTER">
+                                <Label text="Partage" styleClass="muted"/>
+                                <Label fx:id="tieLabel" text="—" styleClass="equity__mid, num"/>
+                            </VBox>
+                            <VBox spacing="4" alignment="CENTER">
+                                <Label text="Adversaire" styleClass="muted"/>
+                                <Label fx:id="villainEquityLabel" text="—" styleClass="equity__big, num"/>
+                            </VBox>
+                        </HBox>
+                        <Label fx:id="methodLabel" styleClass="faint"/>
+                    </VBox>
+
+                    <HBox spacing="10" alignment="CENTER_LEFT">
+                        <Button fx:id="calculateButton" text="Calculer l'équité"
+                                onAction="#onCalculate" styleClass="btn, btn--primary"
+                                minHeight="40" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                    </HBox>
+                    <Label fx:id="errorLabel" styleClass="error" wrapText="true"/>
+
+                    <VBox fx:id="spotChartBox" styleClass="panel" VBox.vgrow="ALWAYS"/>
+                </VBox>
+            </HBox>
+
+        </StackPane>
+    </center>
+
+    <bottom>
+        <HBox fx:id="navBar" alignment="CENTER" spacing="12" styleClass="bottombar">
+            <Button onAction="#onGoToStart" styleClass="btn, btn--nav">
+                <graphic>
+                    <SVGPath content="M3 3 L4.5 3 L4.5 13 L3 13 Z M13.5 3 L13.5 13 L6 8 Z"
+                             styleClass="icon"/>
+                </graphic>
+            </Button>
+            <Button text="Précédent" onAction="#onPrevStep" styleClass="btn, btn--nav">
+                <graphic><SVGPath content="M12 3 L12 13 L4 8 Z" styleClass="icon"/></graphic>
+            </Button>
+            <Button fx:id="playButton" text="Lecture" onAction="#onTogglePlay"
+                    styleClass="btn, btn--nav">
+                <graphic><SVGPath content="M4 3 L12 8 L4 13 Z" styleClass="icon, icon--accent"/></graphic>
+            </Button>
+            <Label fx:id="stepCounterLabel" text="Étape — / —" styleClass="step__counter, num"/>
+            <Button text="Suivant" onAction="#onNextStep" styleClass="btn, btn--nav">
+                <graphic><SVGPath content="M4 3 L12 8 L4 13 Z" styleClass="icon"/></graphic>
+            </Button>
+            <Button onAction="#onGoToEnd" styleClass="btn, btn--nav">
+                <graphic>
+                    <SVGPath content="M13 3 L11.5 3 L11.5 13 L13 13 Z M2.5 3 L2.5 13 L10 8 Z"
+                             styleClass="icon"/>
+                </graphic>
+            </Button>
+            <Label text="← → Début Fin" styleClass="faint"/>
+        </HBox>
+    </bottom>
+
+</BorderPane>

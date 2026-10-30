@@ -110,12 +110,14 @@ public class MenuController {
         int realIdx = availableHands.size() - 1 - comboIdx;
         if (realIdx >= 0 && realIdx < availableHands.size()) {
             SessionData.setSelectedHand(availableHands.get(realIdx));
-            MainController.goToReplay();
+            MainController.goToAnalysis();
         }
     }
 
+    //Le calculateur d'équité est le mode « spot libre » de l'écran d'analyse
     @FXML
     private void onLeakAnalyzer() {
+        SessionData.setSelectedHand(null);
         MainController.goToAnalysis();
     }
 
