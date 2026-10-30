@@ -289,3 +289,130 @@
 }
 .overlay__title { -fx-font-size: 22px; -fx-font-weight: bold; }
 .overlay__detail { -fx-font-size: 14px; -fx-text-fill: -pb-text-dim; }
+
+/* ── Carton de conseil (AdviceCard) ───────────────────────────────────────── */
+
+.verdict__played      { -fx-font-size: 13px; -fx-font-weight: bold; }
+.verdict__recommended { -fx-font-size: 13px; -fx-text-fill: -pb-accent; }
+.verdict__score       { -fx-font-size: 16px; -fx-font-weight: bold; }
+
+/* Jauge de score : la piste reste visible, le remplissage porte la sévérité */
+.gauge {
+    -fx-background-color: -pb-surface-2;
+    -fx-background-radius: 3px;
+    -fx-min-height: 6px;
+    -fx-max-height: 6px;
+}
+.gauge__fill {
+    -fx-background-radius: 3px;
+    -fx-min-height: 6px;
+    -fx-max-height: 6px;
+    -fx-background-color: -pb-text-faint;
+}
+.gauge__fill--good { -fx-background-color: -pb-good; }
+.gauge__fill--mid  { -fx-background-color: -pb-mid;  }
+.gauge__fill--bad  { -fx-background-color: -pb-bad;  }
+
+/* Tuile de chiffre : intitulé au-dessus, valeur en dessous */
+.tile {
+    -fx-background-color: -pb-surface-2;
+    -fx-background-radius: 4px;
+    -fx-padding: 6 10 6 10;
+    -fx-min-width: 86px;
+}
+.tile__label { -fx-font-size: 10px; -fx-text-fill: -pb-text-dim; }
+.tile__value { -fx-font-size: 14px; -fx-font-weight: bold; }
+
+/* ── Frise scorée (ScoredTimeline) ────────────────────────────────────────── */
+
+.timeline__row {
+    -fx-padding: 2 6 2 6;
+    -fx-background-radius: 3px;
+    -fx-cursor: hand;
+}
+.timeline__row:hover { -fx-background-color: -pb-surface-2; }
+.timeline__row--current { -fx-background-color: -pb-accent-soft; }
+.timeline__row--current .timeline__entry { -fx-text-fill: -pb-text; }
+
+.dot { -fx-fill: -pb-text-faint; }
+.dot--good    { -fx-fill: -pb-good; }
+.dot--mid     { -fx-fill: -pb-mid; }
+.dot--bad     { -fx-fill: -pb-bad; }
+.dot--unknown { -fx-fill: -pb-line; }
+.dot--other   { -fx-fill: -pb-line; }
+
+/* ── Courbe d'équité (EquityCurve) ────────────────────────────────────────── */
+
+.curve { -fx-background-color: transparent; }
+.curve__line {
+    -fx-stroke: -pb-accent;
+    -fx-stroke-width: 2;
+    -fx-fill: transparent;
+    -fx-stroke-line-cap: round;
+}
+.curve__band { -fx-fill: rgba(232, 163, 61, 0.16); -fx-stroke: transparent; }
+.curve__axis { -fx-stroke: -pb-line; -fx-stroke-dash-array: 3 5; }
+.curve__marker { -fx-fill: -pb-text; -fx-stroke: -pb-accent; -fx-stroke-width: 2; }
+.curve__label { -fx-fill: -pb-text; -fx-font-size: 11px; }
+
+/* ── Sélecteur de cartes (CardPicker) ─────────────────────────────────────── */
+
+.picker__cell {
+    -fx-background-color: -pb-surface-2;
+    -fx-background-radius: 3px;
+    -fx-border-color: transparent;
+    -fx-padding: 3 5 3 5;
+    -fx-font-size: 12px;
+    -fx-font-family: "DejaVu Sans Mono", "Consolas", monospace;
+    -fx-cursor: hand;
+    -fx-min-width: 34px;
+}
+.picker__cell--red   { -fx-text-fill: #E8808C; }
+.picker__cell--black { -fx-text-fill: -pb-text-dim; }
+.picker__cell:hover  { -fx-background-color: derive(-pb-surface-2, 25%); }
+.picker__cell--selected {
+    -fx-background-color: -pb-accent;
+    -fx-text-fill: -pb-accent-text;
+}
+.picker__cell:disabled { -fx-opacity: 0.25; -fx-cursor: default; }
+
+/* ── Grille de range (RangeGrid) ──────────────────────────────────────────── */
+
+.range__cell {
+    -fx-background-color: -pb-surface-2;
+    -fx-background-radius: 2px;
+    -fx-border-color: transparent;
+    -fx-text-fill: -pb-text-dim;
+    -fx-font-size: 9px;
+    -fx-padding: 2 1 2 1;
+    -fx-min-width: 30px;
+    -fx-cursor: hand;
+}
+.range__cell--pair    { -fx-background-color: derive(-pb-surface-2, 12%); }
+.range__cell--suited  { -fx-background-color: -pb-surface-2; }
+.range__cell--offsuit { -fx-background-color: derive(-pb-surface-2, -8%); }
+.range__cell:hover    { -fx-border-color: -pb-accent; }
+.range__cell--on {
+    -fx-background-color: -pb-accent;
+    -fx-text-fill: -pb-accent-text;
+    -fx-font-weight: bold;
+}
+
+/* ── Table de replay (ReplayTable) ────────────────────────────────────────── */
+
+.replay-table { -fx-background-color: transparent; }
+
+/* L'ovale de feutre dessiné, le seul endroit où le vert a droit de cité */
+.felt-oval {
+    -fx-fill: radial-gradient(center 50% 40%, radius 65%,
+              derive(-pb-felt, 18%) 0%, -pb-felt 72%, derive(-pb-felt, -24%) 100%);
+    -fx-stroke: -pb-felt-edge;
+    -fx-stroke-width: 2.5;
+    -fx-effect: dropshadow(gaussian, rgba(0, 0, 0, 0.5), 24, 0, 0, 8);
+}
+
+/* Porteur du bouton : liseré discret, l'ambre reste réservé à qui doit parler */
+.seat--button {
+    -fx-border-color: -pb-text-dim;
+    -fx-border-style: segments(6, 4);
+}
