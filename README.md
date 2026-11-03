@@ -82,6 +82,28 @@ mvn  javafx:run
 
   
 
+### Sous Windows
+
+1. Installer **Java 21** : https://adoptium.net/temurin/releases/ (JDK, .msi, cocher
+   « Set JAVA_HOME »)
+2. Installer **Maven** : https://maven.apache.org/download.cgi (le zip `bin`,
+   décompressé p. ex. dans `C:\maven`, puis ajouter `C:\maven\bin` au `Path`).
+3. Rouvrir un `cmd` ou PowerShell et vérifier :
+
+```bat
+java -version
+mvn -version
+```
+
+4. Cloner et lancer:
+
+```bat
+git clone git@gitlabense.imtbs-tsp.eu:projetdev/pokerbrain.git
+cd pokerbrain
+mvn clean compile
+mvn javafx:run
+```  
+
 ### Avec IntelliJ IDEA
 
   
