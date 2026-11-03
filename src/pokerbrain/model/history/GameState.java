@@ -47,10 +47,7 @@ public final class GameState{
   public int getTotalPot(){ return totalPot; }
   public List<SidePot> getSidePots(){ return sidePots; }
   public List<PlayerState> getPlayers() { return players; }
-  public String getCurrentPlayerId(){ return currentPlayerId; }
   public int getCurrentBetLevel(){ return currentBetLevel; }
-  public Action getLastAction(){ return lastAction; }
-
   public static final class Builder {
     private BettingRound round;
     private List<Card> board = new ArrayList<>();

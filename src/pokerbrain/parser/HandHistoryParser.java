@@ -1,5 +1,7 @@
 package pokerbrain.parser;
 
+import pokerbrain.Debug;
+
 import pokerbrain.model.core.Card;
 import pokerbrain.model.game.*;
 import pokerbrain.model.history.GameState;
@@ -14,6 +16,10 @@ import java.util.*;
 
 public final class HandHistoryParser{
   private static final List<String> SECTION_NAMES = Arrays.asList("HEADER", "PLAYERS", "HOLECARDS", "PREFLOP", "FLOP", "TURN", "RIVER", "SHOWDOWN");
+
+  // "<nom> - Seat <n> - Stack <s> - Position <p>", le nom pouvant contenir des tirets
+  private static final java.util.regex.Pattern PLAYER_LINE = java.util.regex.Pattern.compile(
+      "^(.*?)\\s+-\\s+Seat\\s+(\\d+)\\s+-\\s+Stack\\s+(\\d+)\\s+-\\s+Position\\s+(\\w+)$");
 
   //Parse un fichier contenant une ou plusieurs mains séparées par --- 
   public static List<Hand> parseFile(Path path) throws IOException, ParseException {
@@ -34,7 +40,7 @@ public final class HandHistoryParser{
   public static List<Hand> parseMultiple(String content) throws ParseException {
     List<Hand> hands = new ArrayList<>();
     String[] blocks = content.split("\\n---\\s*\\n");
-    System.out.println("[Parser] Blocs bruts détectés dans le fichier : " + blocks.length); //log
+    Debug.log(() -> "[Parser] Blocs bruts détectés dans le fichier : " + blocks.length);
     for (String handReaded : blocks) {
       handReaded = handReaded.trim();
       if (handReaded.isEmpty()) {
@@ -47,11 +53,11 @@ public final class HandHistoryParser{
 
   //Parsing d'une main
   private static Hand parseSingleHand(String blockDeJeu) throws ParseException {
-    System.out.println("[Parser] Début du parsing d'un nouveau bloc de jeu..."); //log
+    Debug.log(() -> "[Parser] Début du parsing d'un nouveau bloc de jeu...");
     String[] lines = blockDeJeu.split("\\n");
 
     Map<String, List<String>> sections = splitSections(lines);
-    System.out.println("[Parser] Sections trouvées dans ce bloc : " + sections.keySet());
+    Debug.log(() -> "[Parser] Sections trouvées dans ce bloc : " + sections.keySet());
 
     Hand.Builder builder = new Hand.Builder();
     List<Player> players = new ArrayList<>();
@@ -75,44 +81,114 @@ public final class HandHistoryParser{
     List<Card> board = new ArrayList<>();
 
     if (sections.containsKey("PREFLOP")) {
-      parseActions(sections.get("PREFLOP"), BettingRound.PREFLOP, byName, builder, board);
+      parseActions(sections.get("PREFLOP"), BettingRound.PREFLOP, byName, byId, builder, board);
     }
     if (sections.containsKey("FLOP")) {
-      parseActions(sections.get("FLOP"), BettingRound.FLOP,byName, builder, board);
+      parseActions(sections.get("FLOP"), BettingRound.FLOP, byName, byId, builder, board);
     }
     if (sections.containsKey("TURN")) {
-      parseActions(sections.get("TURN"), BettingRound.TURN,byName, builder, board);
+      parseActions(sections.get("TURN"), BettingRound.TURN, byName, byId, builder, board);
     }
     if (sections.containsKey("RIVER")) {
-      parseActions(sections.get("RIVER"), BettingRound.RIVER, byName, builder, board);
+      parseActions(sections.get("RIVER"), BettingRound.RIVER, byName, byId, builder, board);
     }
 
     builder.board(board);
 
     parseShowdown(sections.getOrDefault("SHOWDOWN", Collections.emptyList()), builder);
-    reconstructGameStates(builder.getActions(), board, builder.getSmallBlind(), builder.getBigBlind(), builder);
-    System.out.println("[Parser] Fin du parsing du bloc");
+    reconstructGameStates(builder.getActions(), players, board,
+                          builder.getSmallBlind(), builder.getBigBlind(), builder);
+    Debug.log(() -> "[Parser] Fin du parsing du bloc");
     return builder.build();
   }
 
-  // Reconstruit un GameState par action en accumulant les mises depuis les blindes.
-  // Fournit au minimum le pot courant et le board, ce qui suffit au ReplayController.
-  private static void reconstructGameStates(List<Action> actions, List<Card> fullBoard,
+  /**
+   * Rejoue la main pour reconstruire un GameState complet par action.
+   *
+   * Pourquoi rejouer plutôt qu'écrire plus de choses dans le fichier : tapis, mises et
+   * statuts se **déduisent** des tapis initiaux, des blindes et des montants d'action, tous
+   * déjà sérialisés. Rien à ajouter au format, rien à resynchroniser entre writer et parser.
+   *
+   * Ce qui manquait rendait l'analyseur muet sur les mains relues du disque — c'est-à-dire
+   * sur toutes : sans `players` ni `currentBetLevel`, `ActionContext.betLevel` valait 0,
+   * `facingBet()` était toujours faux, et toute la branche « face à une mise » de
+   * `HandAnalyser` ne s'exécutait jamais (SPR nul, multiway invisible, sizing à 0).
+   *
+   * Les `Player` passés ici sont les objets du parsing : ils sont mutés au fil du rejeu,
+   * comme ils le sont en partie réelle. Les `initialStates` ont déjà été figés avant.
+   */
+  private static void reconstructGameStates(List<Action> actions, List<Player> players,
+                                             List<Card> fullBoard,
                                              int sb, int bb, Hand.Builder builder) {
-    int pot = sb + bb;
-    for (Action action : actions) {
-      if (action.getType().involvesMoney()) {
-        pot += action.getAmount();
-      }
-      List<Card> boardAtRound = boardForRound(fullBoard, action.getRound());
-      GameState gs = new GameState.Builder()
-          .round(action.getRound())
-          .board(boardAtRound)
-          .totalPot(pot)
-          .lastAction(action)
-          .build();
-      builder.addGameState(gs);
+    int pot = postBlinds(players, sb, bb);
+    int betLevel = 0;
+    for (Player p : players) {
+      betLevel = Math.max(betLevel, p.getCurrentBet());
     }
+
+    BettingRound round = BettingRound.PREFLOP;
+    for (Action action : actions) {
+      // Changement de street : les mises de la street précédente sont déjà dans le pot
+      if (action.getRound() != round) {
+        round = action.getRound();
+        for (Player p : players) p.setCurrentBet(0);
+        betLevel = 0;
+      }
+
+      Player actor = action.getPlayer();
+      if (action.getType() == ActionType.FOLD) {
+        actor.setStatus(PlayerStatus.FOLDED);
+      } else if (action.getType().involvesMoney()) {
+        // getAmount() est un delta : ce que l'action ajoute au pot, pas un total à atteindre
+        int delta = Math.min(action.getAmount(), actor.getStack());
+        actor.removeFromStack(delta);
+        actor.setCurrentBet(actor.getCurrentBet() + delta);
+        betLevel = Math.max(betLevel, actor.getCurrentBet());
+        pot += delta;
+      }
+
+      List<PlayerState> states = new ArrayList<>();
+      for (Player p : players) states.add(PlayerState.of(p));
+
+      builder.addGameState(new GameState.Builder()
+          .round(round)
+          .board(boardForRound(fullBoard, round))
+          .totalPot(pot)
+          .players(states)
+          .currentBetLevel(betLevel)
+          .lastAction(action)
+          .build());
+    }
+  }
+
+  /**
+   * Replace les blindes, qui ne sont pas des `Action` et n'apparaissent donc pas dans le
+   * fichier. Même règle que `ActionContext.blindOf` : en heads-up sans siège SB, c'est le
+   * BTN qui poste la petite blinde. Retourne le pot ainsi constitué.
+   *
+   * Seule la mise de street est posée, **pas** un retrait du tapis : le `Stack` écrit dans
+   * la section PLAYERS vient du snapshot initial de `HandRecord`, pris après
+   * `PokerGame.startNewHand()` — il est donc déjà net des blindes. Les redéduire ici
+   * appauvrissait les blindes d'une blinde dans tous les snapshots.
+   */
+  private static int postBlinds(List<Player> players, int sb, int bb) {
+    boolean hasSmallBlindSeat = players.stream().anyMatch(p -> p.getPosition() == Position.SB);
+    boolean headsUp = players.size() == 2 && !hasSmallBlindSeat;
+    int pot = 0;
+    for (Player p : players) {
+      Position pos = p.getPosition();
+      int blind = 0;
+      if (pos == Position.BB) {
+        blind = bb;
+      } else if (pos == Position.SB || (headsUp && pos == Position.BTN)) {
+        blind = sb;
+      }
+      if (blind > 0) {
+        p.setCurrentBet(blind);
+        pot += blind;
+      }
+    }
+    return pot;
   }
 
   private static List<Card> boardForRound(List<Card> fullBoard, BettingRound round) {
@@ -160,7 +236,7 @@ public final class HandHistoryParser{
       switch (key) {
         case "HandId":
           builder.handId(value);
-          System.out.println("[Parser] HandId identifié : " + value); //log
+          Debug.log(() -> "[Parser] HandId identifié : " + value);
           break;
         case "Table":
           builder.tableName(value); 
@@ -201,13 +277,18 @@ public final class HandHistoryParser{
         String id = idAndRest[0].trim();
         String rest = idAndRest[1].trim();
 
-        // Séparer par " - "
-        String[] parts = rest.split("\\s*-\\s*");
-        String name = parts[0].trim();
-        int seat = Integer.parseInt(parts[1].replace("Seat", "").trim());
-        int stack = Integer.parseInt(parts[2].replace("Stack", "").trim());
-        String posStr = parts[3].replace("Position", "").trim();
-        Position pos = Position.valueOf(posStr);
+        // Champs reconnus par leur étiquette, pas par découpage sur les tirets : un
+        // « Jean-Marc » faisait éclater la ligne en cinq morceaux et perdre la main entière.
+        // Le nom est non gourmand mais ancré sur « - Seat », donc un nom qui contient
+        // lui-même « - » est rendu intact.
+        java.util.regex.Matcher m = PLAYER_LINE.matcher(rest);
+        if (!m.matches()) {
+          throw new ParseException("Format joueur invalide", i, line);
+        }
+        String name = m.group(1).trim();
+        int seat = Integer.parseInt(m.group(2));
+        int stack = Integer.parseInt(m.group(3));
+        Position pos = Position.valueOf(m.group(4));
 
         Player p = new Player(id, name, stack);
         p.setSeat(seat);
@@ -249,6 +330,7 @@ public final class HandHistoryParser{
   //Parsing des actions au format : <nom>: <ACTION> [<montant>] ainsi que "Board: <cartes>" dans FLOP/TURN/RIVER
   private static void parseActions(List<String> lines, BettingRound round,
                                       Map<String, Player> byName,
+                                      Map<String, Player> byId,
                                       Hand.Builder builder,
                                       List<Card> board) throws ParseException {
     for (int i = 0; i < lines.size(); i++) {
@@ -268,7 +350,9 @@ public final class HandHistoryParser{
         String playerName = parts[0].trim();
         String[] actionParts = parts[1].trim().split("\\s+");
 
-        Player p = byName.get(playerName);
+        // Les actions sont écrites par nom (lisible), mais un id est accepté : c'est la
+        // seule clé garantie unique, et deux joueurs peuvent porter le même nom.
+        Player p = byName.containsKey(playerName) ? byName.get(playerName) : byId.get(playerName);
         if (p == null) {
           throw new ParseException("Joueur inconnu : " + playerName, i, line);
         }

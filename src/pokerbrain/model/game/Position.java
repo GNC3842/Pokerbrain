@@ -60,10 +60,6 @@ public enum Position {
 		return this.code;
 	}
 	
-	//récupere nom complet
-	public String getFullName() {
-		return this.fullName;
-	}
 	
 	//Savoir si position importante
 	public boolean isDealer() {
@@ -78,13 +74,18 @@ public enum Position {
 		return this.bigBlind;
 	}
 	
-	//Savoir si blinde obligatoire
-	public boolean isBlind() {
-		return (isSmallBlind() || isBigBlind());
-	}
 	
-	//True pour les positions qui jouent "en position" postflop (CO, BTN).
-    public boolean isLatePosition() { return this == CO || this == BTN; }
+    /**
+     * Rang dans l'ordre de parole de la street, 0 = parle en premier.
+     *
+     * L'ordre preflop est l'ordre de déclaration de l'énumération (UTG → … → BTN → SB → BB) ;
+     * l'ordre postflop le décale de deux crans, ce qui amène SB puis BB devant. Le décalage
+     * donne aussi le bon ordre en heads-up, où seuls BTN et BB existent : BTN parle en
+     * premier au preflop (il poste la SB) et en dernier ensuite.
+     */
+    public int speakingRank(boolean preflop) {
+        return preflop ? ordinal() : (ordinal() + 2) % values().length;
+    }
 	
     //toString
     @Override

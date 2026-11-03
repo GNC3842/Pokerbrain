@@ -57,23 +57,9 @@ public class PositionManager {
     	return this.playerCount == 2;
     }
     
-    public boolean isFullRing() {
-    	return this.playerCount == 10;
-    }
     
-    public boolean isShortHanded() {
-    	return this.playerCount >= 4 && this.playerCount <=6;
-    }
     
-    //savoir qui est le dealer
-    public Optional<Player> getDealer(List<Player> players){
-    	return getPlayerAtPosition(players, Position.BTN);
-    }
     
-    // verifie si une position est active pour ce nombre de joueurs.
-    public boolean isPositionActive(Position position) {
-        return this.activePositions.contains(position);
-    }
     
     //Assigner les positions à une liste de joeurus
     public void assignPositions(List<Player> players) {

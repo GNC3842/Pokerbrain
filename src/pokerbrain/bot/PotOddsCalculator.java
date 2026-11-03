@@ -1,8 +1,5 @@
 package pokerbrain.bot;
 
-import pokerbrain.model.core.Rank;
-import pokerbrain.model.game.ActionType;
-
 /**
  * Calcule les pot odds, equity requise et expected value.
  * Utilitaire stateless — toutes les methodes sont statiques.
@@ -11,16 +8,6 @@ public final class PotOddsCalculator {
 	//COnstructeur vide
 	private PotOddsCalculator() {}
 	
-	/**
-     * Pot odds en ratio : combien on risque pour combien on peut gagner.
-     * Ex: pot=100, call=25 -> ratio=4.0 (on risque 1 pour en gagner 4)
-     */
-    public static double potOddsRatio(int pot, int callAmount) {
-        if (callAmount <= 0) {
-        	return Double.MAX_VALUE;
-        }
-        return (double) pot / callAmount;
-    }
     
     /**
      * Equite minimale pour que le call soit profitable.
@@ -42,12 +29,6 @@ public final class PotOddsCalculator {
         return equity * pot - (1.0 - equity) * callAmount;
     }
     
-    //Valeur attendue d'un bluff/bet
-    public static double betEV(double foldEquity, double equity, int pot, int betAmount) {
-        double evIfFold = foldEquity * pot;
-        double evIfCall = (1.0 - foldEquity) * (equity * (pot + betAmount) - (1.0 - equity) * betAmount);
-        return evIfFold + evIfCall;
-    }
     
     //Taille de mise en fraction du pot pour un bluff avec break-even.
     // betFraction = foldEquityNeeded / (1 - foldEquityNeeded)

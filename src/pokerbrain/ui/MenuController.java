@@ -2,7 +2,6 @@ package pokerbrain.ui;
 
 import javafx.fxml.FXML;
 import javafx.scene.control.ComboBox;
-import pokerbrain.AppContext;
 import pokerbrain.MainApp;
 import pokerbrain.bot.Bot;
 import pokerbrain.bot.BotProfile;
@@ -10,6 +9,7 @@ import pokerbrain.bot.BotProfileFactory;
 import pokerbrain.model.game.Player;
 import javafx.scene.control.Label;
 import pokerbrain.model.history.Hand;
+import pokerbrain.simulator.MonteCarloEngine;
 
 import java.util.List;
 import java.util.ArrayList;
@@ -93,7 +93,8 @@ public class MenuController {
             String name = names[i % names.length] + (i >= 3 ? " " + (i/3 + 1) : "");
             BotProfile prof = profiles[i % profiles.length];
             players.add(new Player(id, name, START_STACK));
-            bots.add(new Bot(id, prof, AppContext.getEngine()));
+            // Un moteur par bot : MonteCarloEngine porte des buffers d'instance
+            bots.add(new Bot(id, prof, new MonteCarloEngine()));
         }
 
         GameController gc = MainController.goToGame();
@@ -109,12 +110,14 @@ public class MenuController {
         int realIdx = availableHands.size() - 1 - comboIdx;
         if (realIdx >= 0 && realIdx < availableHands.size()) {
             SessionData.setSelectedHand(availableHands.get(realIdx));
-            MainController.goToReplay();
+            MainController.goToAnalysis();
         }
     }
 
+    //Le calculateur d'équité est le mode « spot libre » de l'écran d'analyse
     @FXML
     private void onLeakAnalyzer() {
+        SessionData.setSelectedHand(null);
         MainController.goToAnalysis();
     }
 

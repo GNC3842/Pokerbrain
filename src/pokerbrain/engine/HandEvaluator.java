@@ -4,7 +4,17 @@ import pokerbrain.model.core.*;
 import java.util.*;
 
 /**
- * Calcule la meilleure main de 5 cartes parmi 5,6 ou 7 cartes
+ * Calcule la meilleure main de 5 cartes parmi 5, 6 ou 7 cartes.
+ *
+ * <p><b>Oracle de test — plus aucun appelant en production.</b> Le showdown
+ * ({@link PotManager}), l'énumération exacte ({@link EquityCalculator}) et le Monte-Carlo
+ * passent tous par {@code simulator.FastHandEvaluator}. Cette implémentation-ci est lente
+ * et alloue beaucoup (une {@code ArrayList}, une {@code LinkedHashMap} et un
+ * {@code HandRank} par combinaison de 5 cartes), mais elle est écrite de façon directement
+ * lisible depuis les règles du poker : c'est précisément ce qui en fait une bonne
+ * référence. {@code HandEvaluatorTest} compare le rapide à celle-ci.
+ *
+ * <p>À ne pas rebrancher dans un chemin chaud : garder un seul évaluateur de production.
  */
 public final class HandEvaluator {
 

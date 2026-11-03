@@ -7,7 +7,7 @@ package pokerbrain.bot;
  *
  * USAGE :
  *   BotProfile tag = BotProfileFactory.createTightAggressive();
- *   Bot bot = new Bot("bot-0", tag, AppContext.getEngine());
+ *   Bot bot = new Bot("bot-0", tag, new MonteCarloEngine());
  */
 public final class BotProfileFactory {
 
@@ -22,6 +22,10 @@ public final class BotProfileFactory {
             BASE + "tag_btn.csv",
             BASE + "tag_co.csv",
             BASE + "tag_utg.csv",
+            BASE + "tag_sb.csv",
+            // Pas de range d'ouverture en BB (elle parle en dernier au preflop) :
+            // sa heatmap de défense face à un open est la seule qui ait un sens ici.
+            BASE + "tag_bb_vs_open.csv",
             BotProfile.PostflopParams.tag()
         );
     }
@@ -33,6 +37,8 @@ public final class BotProfileFactory {
             BASE + "fish_all.csv",
             BASE + "fish_all.csv",
             BASE + "fish_all.csv",
+            BASE + "fish_all.csv",
+            BASE + "fish_all.csv",
             BotProfile.PostflopParams.fish()
         );
     }
@@ -41,6 +47,8 @@ public final class BotProfileFactory {
     public static BotProfile createLooseAggressive() {
         return RangeMapLoader.loadProfileFromClasspath(
             "Le perdant",
+            BASE + "lag_all.csv",
+            BASE + "lag_all.csv",
             BASE + "lag_all.csv",
             BASE + "lag_all.csv",
             BASE + "lag_all.csv",

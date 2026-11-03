@@ -20,9 +20,13 @@ public class MainController {
     }
 
     public static void goToMenu()       { navigate("fxml/MainMenu.fxml"); }
-    public static void goToReplay()     { navigate("fxml/ReplayScreen.fxml"); }
-    public static void goToAnalysis()   { navigate("fxml/AnalysisPanel.fxml"); }
     public static void goToStatistics() { navigate("fxml/StatisticsView.fxml"); }
+
+    /**
+     * Replay et calculateur d'équité sont le même écran, à deux modes : le replay part de
+     * `SessionData.getSelectedHand()`, le spot libre d'une grille de cartes vide.
+     */
+    public static void goToAnalysis()   { navigate("fxml/AnalysisScreen.fxml"); }
 
     private static void navigate(String fxmlPath) {
         try {

@@ -34,8 +34,9 @@ public class PokerGame {
 	private BettingRoundManager    roundManager;
 	private List<Action>           handHistory;
 	private boolean                handOver;
-	private int                    dealerSeat; // indice du BTN dans players[]
-	private PositionManager        currentPositionManager;
+	// Indice du porteur du bouton dans `players`, la liste stable des sièges : jamais dans
+	// une liste filtrée, dont la taille change à chaque élimination.
+	private int                    buttonSeat;
 
 	//Constructeur
 	public PokerGame(List<Player> players, int smallBlind, int bigBlind) {
@@ -54,7 +55,7 @@ public class PokerGame {
 		this.positionManager = new PositionManager(players.size());
 		this.dealerEngine    = new DealerEngine(new Deck());
 		this.potManager      = new PotManager();
-		this.dealerSeat      = 0;
+		this.buttonSeat      = 0;
 		this.handOver        = true;
 	}
 
@@ -91,13 +92,41 @@ public class PokerGame {
 			this.positionManager = new PositionManager(activePlayers.size());
 		}
 
-		// Rotation du dealer
-		this.dealerSeat = (this.dealerSeat + 1) % activePlayers.size();
+		/*
+		 * Rotation du bouton : siège suivant encore pourvu en jetons, dans l'ordre STABLE
+		 * de `players`. L'ancien calcul avançait un index modulo `activePlayers.size()`,
+		 * une liste qui rétrécit à chaque élimination : le bouton pouvait sauter un siège,
+		 * reculer, ou rester deux mains de suite sur le même joueur.
+		 */
+		for (int step = 1; step <= this.players.size(); step++) {
+			int candidat = (this.buttonSeat + step) % this.players.size();
+			if (activePlayers.contains(this.players.get(candidat))) {
+				this.buttonSeat = candidat;
+				break;
+			}
+		}
 
-		// Réordonner depuis le BTN
-		List<Player> fromDealer = new ArrayList<>();
-		for (int i = 0; i < activePlayers.size(); i++) {
-			fromDealer.add(activePlayers.get((this.dealerSeat + i) % activePlayers.size()));
+		// Joueurs encore en jeu, en partant du bouton
+		List<Player> depuisBouton = new ArrayList<>();
+		for (int i = 0; i < this.players.size(); i++) {
+			Player p = this.players.get((this.buttonSeat + i) % this.players.size());
+			if (activePlayers.contains(p)) {
+				depuisBouton.add(p);
+			}
+		}
+
+		/*
+		 * `assignPositions` distribue les positions dans l'ordre de parole preflop
+		 * (ex. à 4 joueurs : CO, BTN, SB, BB), le BTN n'est donc pas en tête de liste.
+		 * On fait tourner la liste pour que le porteur du bouton tombe pile sur le siège
+		 * BTN de cette table — sans quoi un changement de nombre de joueurs décale le
+		 * bouton d'autant que le rang du BTN a bougé.
+		 */
+		int nbActifs = depuisBouton.size();
+		int rangBouton = this.positionManager.getActivePositions().indexOf(Position.BTN);
+		List<Player> fromDealer = new ArrayList<>(Collections.nCopies(nbActifs, (Player) null));
+		for (int i = 0; i < nbActifs; i++) {
+			fromDealer.set((i + rangBouton) % nbActifs, depuisBouton.get(i));
 		}
 
 		// Assigner les positions
@@ -183,8 +212,17 @@ public class PokerGame {
 		Action action = this.roundManager.processAction(type, amount);
 		this.handHistory.add(action);
 
-		// Si un seul joueur reste actif -> fin de main immédiate
-		if (countActivePlayers() <= 1) {
+		/*
+		 * Fin anticipée seulement quand plus personne ne PEUT agir :
+		 *   - il ne reste qu'un joueur non couché, ou
+		 *   - tous les joueurs non couchés sont à tapis.
+		 *
+		 * L'ancienne condition `countActivePlayers() <= 1` réglait aussi la main quand il
+		 * restait un joueur actif devant un tapis adverse qu'il n'avait pas encore égalé :
+		 * ni l'un ni l'autre des deux cas ci-dessous ne s'appliquait, `handOver` restait
+		 * faux, et la mise non égalée avait déjà filé dans le pot de l'adversaire.
+		 */
+		if (getInGamePlayers().size() <= 1 || countActivePlayers() == 0) {
 			autoAwardPot();
 		}
 		return action;
@@ -198,7 +236,7 @@ public class PokerGame {
 	/**
 	 * Showdown
 	 * Résout le showdown après la river.
-	 * Distribue les pots aux gagnants selon HandEvaluator.
+	 * Distribue les pots aux gagnants selon FastHandEvaluator.
 	 */
 	public Map<Player, Integer> showdown() {
 		assertRoundComplete();
@@ -247,6 +285,15 @@ public class PokerGame {
 	
 	public int getTotalPot() {
 		return this.potManager.getTotalPot();
+	}
+
+	/**
+	 * Gains reversés aux joueurs pendant la main en cours, abattage ou fin anticipée.
+	 * Valable jusqu'au prochain startNewHand(). C'est ce que l'enregistreur doit écrire
+	 * dans la main : showdown() ne couvre que l'abattage, pas les mains gagnées par fold.
+	 */
+	public Map<Player, Integer> getWinnings() {
+		return this.potManager.getPayouts();
 	}
 	
 	public List<Action> getHandHistory(){
@@ -354,10 +401,13 @@ public class PokerGame {
 		this.potManager.collectBets(inGame);
 
 		if (inGame.size() == 1) {
-			// Cas 1 : un seul joueur restant → il remporte tous les pots
+			// Cas 1 : un seul joueur restant → il remporte tous les pots.
+			// Passer par payDirect pour que le gain soit enregistré dans la main :
+			// un addToStack muet laissait Hand.winnings vide sur toutes les mains
+			// gagnées par fold, soit la majorité.
 			Player winner = inGame.get(0);
 			for (SidePot sp : this.potManager.getFinalisedPots()) {
-				winner.addToStack(sp.getAmount());
+				this.potManager.payDirect(winner, sp.getAmount());
 			}
 			this.handOver = true;
 

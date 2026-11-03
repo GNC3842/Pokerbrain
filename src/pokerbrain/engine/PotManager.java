@@ -3,6 +3,8 @@ package pokerbrain.engine;
 import java.util.*;
 import pokerbrain.model.core.*;
 import pokerbrain.model.game.*;
+import pokerbrain.simulator.CardPrimitiveBridge;
+import pokerbrain.simulator.FastHandEvaluator;
 
 /*
  * Gere les contributions au pot principal (celui du tour en cours) et les side pots
@@ -24,11 +26,27 @@ public class PotManager {
 	
 	//Side pot déja calculés
 	private final List<SidePot> finalisedPots;
-	
+
+	/**
+	 * Tout ce qui est reversé à un joueur pendant la main : pots gagnés à l'abattage,
+	 * pots pris sans opposition, et mises non égalées rendues à leur propriétaire.
+	 *
+	 * Sert à construire le `Hand.winnings` enregistré sur disque. Sans cela, les mains
+	 * gagnées par fold général — la majorité — étaient enregistrées sans aucun gain :
+	 * `totalInvested` était compté mais pas `totalWon`, donc le BB/100 était
+	 * structurellement négatif et le LeakDetector annonçait « winrate négatif » à un
+	 * joueur gagnant.
+	 *
+	 * Les mises rendues en font partie à dessein : elles ont été comptées dans
+	 * l'investissement du joueur, il faut donc les lui recréditer pour que le net soit juste.
+	 */
+	private final Map<Player, Integer> payouts;
+
 	//Constructeur
 	public PotManager() {
 		this.roundContributions = new LinkedHashMap<>();
 		this.finalisedPots      = new ArrayList<>();
+		this.payouts            = new LinkedHashMap<>();
 	}
 	
 	//Enregistrer les mises
@@ -108,10 +126,17 @@ public class PotManager {
 			return;
 		}
 		if(eligible.size() == 1) {
-			eligible.get(0).addToStack(amount);
+			pay(eligible.get(0), amount);
 		} else {
 			this.finalisedPots.add(new SidePot(amount,eligible));
 		}
+	}
+
+	//Crédite un joueur et garde la trace du versement
+	private void pay(Player player, int amount) {
+		if (amount <= 0) return;
+		player.addToStack(amount);
+		this.payouts.merge(player, amount, Integer::sum);
 	}
 	
 	//Eligibles pour un palier all-in : contribution >= cap CE round
@@ -134,33 +159,53 @@ public class PotManager {
         return result;
     }
     
-    //Distribution des gains:
-    //Le jeton résiduel si jeton résiduel il y a (odd chip) va au gagnant le plus proche de la SB
+    /**
+     * Distribution des gains à l'abattage.
+     * Le jeton résiduel (odd chip) va au gagnant le plus proche de la SB.
+     *
+     * Les listes d'éligibles des side pots sont filtrées des joueurs couchés : elles ont
+     * été figées au round qui les a créées, et un joueur qui se couche à la turn y restait
+     * éligible au pot du flop. Mesuré avant correctif : 12 pots sur 104 abattages
+     * remportés par un joueur couché.
+     */
     public Map<Player,Integer> awardPots(List<Card> board, List<Player> orderedPlayers){
-    	Map<Player, Integer> winnings = new LinkedHashMap<>();
-    	
     	for (SidePot sidePot : this.finalisedPots) {
-    		List<Player> winners = findWinners(sidePot.getEligiblePlayers(),board);
+    		List<Player> eligible = stillInHand(sidePot.getEligiblePlayers());
+    		if (eligible.isEmpty()) {
+    			// Ne devrait pas arriver : un pot dont tous les éligibles se sont couchés
+    			// est remporté par le dernier joueur en jeu via PokerGame.autoAwardPot.
+    			// Garde-fou pour ne jamais laisser des jetons au sol.
+    			eligible = stillInHand(orderedPlayers);
+    			if (eligible.isEmpty()) continue;
+    		}
+
+    		List<Player> winners = findWinners(eligible, board);
     		if(winners.isEmpty()) {
     			continue;
     		}
     		int pot = sidePot.getAmount();
     		int share = pot / winners.size();
     		int oddChip = pot % winners.size();
-    		
+
     		for (Player winner : winners) {
-    			winner.addToStack(share);
-    			winnings.merge(winner, share, Integer::sum);
+    			pay(winner, share);
     		}
-    		
-    		//Loddchip va au premier gagnant dans l'ordre SB first
+
+    		//L'odd chip va au premier gagnant dans l'ordre SB first
     		if (oddChip > 0) {
-                Player oddWinner = findFirstInOrder(winners, orderedPlayers);
-                oddWinner.addToStack(oddChip);
-                winnings.merge(oddWinner, oddChip, Integer::sum);
+                pay(findFirstInOrder(winners, orderedPlayers), oddChip);
             }
     	}
-    	return winnings;
+    	return getPayouts();
+    }
+
+    //Joueurs encore en lice : ni couchés, ni éliminés
+    private static List<Player> stillInHand(List<Player> players) {
+    	List<Player> result = new ArrayList<>();
+    	for (Player p : players) {
+    		if (!p.isFolded() && !p.isOut()) result.add(p);
+    	}
+    	return result;
     }
     
     //Trouver le 1er joueur dans target
@@ -173,20 +218,45 @@ public class PotManager {
     	return targets.get(0);
     }
     
+    /**
+     * Gagnants d'un pot, via l'évaluateur rapide (classe canonique CactusKev 1-7462,
+     * la PLUS PETITE est la plus forte). Remplace l'évaluateur objet, qui allouait
+     * une ArrayList, une LinkedHashMap et un HandRank par combinaison de 5 cartes.
+     *
+     * Le board doit être complet et chaque joueur éligible doit avoir ses deux cartes :
+     * c'est l'invariant garanti par PokerGame.showdown() et autoAwardPot(). Le rompre
+     * signifie un pot mal attribué, donc on lève plutôt que de deviner.
+     */
     private List<Player> findWinners(List<Player> players, List<Card> board){
-    	HandRank bestRank = null;
+    	if (board == null || board.size() != 5) {
+    		throw new IllegalStateException("Showdown sur un board incomplet : "
+    			+ (board == null ? 0 : board.size()) + " carte(s) au lieu de 5");
+    	}
+
+    	int[] cards = new int[7];
+    	for (int i = 0; i < 5; i++) {
+    		cards[i] = CardPrimitiveBridge.encode(board.get(i));
+    	}
+    	FastHandEvaluator evaluator = new FastHandEvaluator();
+
+    	int bestClass = Integer.MAX_VALUE;
     	List<Player> winners = new ArrayList<>();
-    	
+
     	for(Player p : players) {
-    		List<Card> sevenCards = new ArrayList<>(board);
-    		sevenCards.addAll(p.getHoleCards());
-    		HandRank rank = HandEvaluator.evaluateBestHand(sevenCards);
-    		int cmp = bestRank == null ? 1 : rank.compareTo(bestRank);
-    		if (cmp > 0) {
-    			bestRank = rank;
+    		List<Card> hole = p.getHoleCards();
+    		if (hole.size() != 2) {
+    			throw new IllegalStateException("Showdown : " + p.getName() + " a "
+    				+ hole.size() + " carte(s) fermée(s) au lieu de 2");
+    		}
+    		cards[5] = CardPrimitiveBridge.encode(hole.get(0));
+    		cards[6] = CardPrimitiveBridge.encode(hole.get(1));
+
+    		int rankClass = evaluator.evaluate7(cards);
+    		if (rankClass < bestClass) {
+    			bestClass = rankClass;
     			winners.clear();
     			winners.add(p);
-    		} else if(cmp == 0) {
+    		} else if(rankClass == bestClass) {
     			winners.add(p);
     		}
     	}
@@ -200,10 +270,6 @@ public class PotManager {
         return finalised + current;
     }
     
-    public int getCurrentRoundTotal() {
-        return this.roundContributions.values().stream().mapToInt(Integer::intValue).sum();
-    }
-
     public List<SidePot> getFinalisedPots() {
         return Collections.unmodifiableList(this.finalisedPots);
     }
@@ -219,8 +285,19 @@ public class PotManager {
         return Math.max(0, highest - already);
     }
 
+    /** Tout ce qui a été reversé aux joueurs depuis le début de la main. */
+    public Map<Player,Integer> getPayouts() {
+        return Collections.unmodifiableMap(new LinkedHashMap<>(this.payouts));
+    }
+
+    /** Remet un joueur dans le pot courant : utilisé par le règlement anticipé d'une main. */
+    void payDirect(Player player, int amount) {
+        pay(player, amount);
+    }
+
     public void reset() {
         this.roundContributions.clear();
         this.finalisedPots.clear();
+        this.payouts.clear();
     }
 }

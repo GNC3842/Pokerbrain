@@ -10,14 +10,27 @@ import java.io.IOException;
 
 public class MainApp extends Application {
 
+    private static final String[] STYLESHEETS = {
+        "/pokerbrain/ui/css/theme.css",
+        "/pokerbrain/ui/css/components.css",
+        "/pokerbrain/ui/css/screens.css"
+    };
+
     private static Stage primaryStage;
+
+    /**
+     * Scène unique de l'application.
+     *
+     * Chaque navigation créait auparavant une `new Scene(root, 1200, 800)` : la fenêtre
+     * sautait à sa taille d'origine à chaque écran, la taille choisie par l'utilisateur
+     * était perdue, et les feuilles de style étaient rechargées à chaque fois. On garde
+     * donc la scène et on remplace seulement sa racine.
+     */
+    private static Scene scene;
 
     @Override
     public void start(Stage stage) throws IOException {
-    	
-    	// Lancer la génération MC en background (thread daemon)
-        AppContext.initAsync();
-        //Charger l'historique
+    	//Charger l'historique
         pokerbrain.ui.SessionData.initHistory();
         
         primaryStage = stage;
@@ -33,7 +46,16 @@ public class MainApp extends Application {
             MainApp.class.getResource("/pokerbrain/ui/" + fxmlPath)
         );
         Parent root = loader.load();
-        primaryStage.setScene(new Scene(root, 1200, 800));
+
+        if (scene == null) {
+            scene = new Scene(root, 1200, 800);
+            for (String feuille : STYLESHEETS) {
+                scene.getStylesheets().add(MainApp.class.getResource(feuille).toExternalForm());
+            }
+            primaryStage.setScene(scene);
+        } else {
+            scene.setRoot(root);
+        }
         return loader.getController();
     }
 

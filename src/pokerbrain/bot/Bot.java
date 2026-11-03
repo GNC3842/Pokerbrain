@@ -169,7 +169,13 @@ public class Bot {
             barrelFactor = RIVER_BARREL_FACTOR;
         }
 
-        boolean facingBet = currentBetLevel > 0 && valid.contains(ActionType.CALL);
+        /*
+         * Faire face à une mise se lit sur les montants, pas sur la présence de CALL :
+         * `getValidActions` retire CALL quand la mise couvre le tapis (il ne reste que
+         * FOLD et ALL_IN). Le bot passait alors dans la branche « personne n'a misé »,
+         * n'y trouvait pas CHECK, et se couchait — y compris avec les nuts.
+         */
+        boolean facingBet = currentBetLevel > me.getCurrentBet();
 
         if (facingBet) {
             //analyse des pots odds
@@ -278,6 +284,10 @@ public class Bot {
         // Cascade de fallback
         if (wanted == ActionType.RAISE && valid.contains(ActionType.CALL)) {
             return buildAction(me, ActionType.CALL, valid, 0, round);
+        }
+        // Suivre une mise qui couvre le tapis, c'est y aller à tapis — pas se coucher.
+        if (wanted == ActionType.CALL && valid.contains(ActionType.ALL_IN)) {
+            return new Action(me, ActionType.ALL_IN, me.getStack(), round);
         }
         if (wanted == ActionType.BET && valid.contains(ActionType.CHECK)) {
             return new Action(me, ActionType.CHECK, round);

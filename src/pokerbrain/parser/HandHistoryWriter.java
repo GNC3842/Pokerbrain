@@ -1,5 +1,7 @@
 package pokerbrain.parser;
 
+import pokerbrain.Debug;
+
 import pokerbrain.model.core.Card;
 import pokerbrain.model.game.Action;
 import pokerbrain.model.game.BettingRound;
@@ -54,7 +56,7 @@ public final class HandHistoryWriter{
 
   //Ici la fonction de conversion principale avec un StringBuilder pour faciliter le travail comme le texte est un peu long
   public static String serialize(Hand hand){
-    System.out.println("[Writer] Sérialisation de la main ID : " + hand.getHandId() + " | Date : " + hand.getDate()); //log
+    Debug.log(() -> "[Writer] Sérialisation de la main ID : " + hand.getHandId() + " | Date : " + hand.getDate());
     StringBuilder build = new StringBuilder(); //On l'instancie
 
     //Portion du header
@@ -195,7 +197,7 @@ public final class HandHistoryWriter{
 
     String content = serialize(hand);
     boolean fileExists = Files.exists(filePath) && Files.size(filePath) > 0;
-    System.out.println("[Writer] Écriture dans : " + filePath.toAbsolutePath() + " (Fichier existant : " + fileExists + ")");//log
+    Debug.log(() -> "[Writer] Écriture dans : " + filePath.toAbsolutePath() + " (Fichier existant : " + fileExists + ")");
 
     try (BufferedWriter writer = Files.newBufferedWriter(filePath,StandardOpenOption.CREATE, StandardOpenOption.APPEND)) {
       if (fileExists) {
@@ -205,8 +207,4 @@ public final class HandHistoryWriter{
     }
   }
 
-  //Possiblement ajouter une fonction pour écrire plusieurs mains directe dans un fichier
-  public static void writeToFile(Hand hand, Path filePath)throws IOException {
-    
-  }
 }

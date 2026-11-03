@@ -8,11 +8,14 @@ import java.util.*;
  * Distribue les cartes selon les règles du Texas Hold'em.
  *
  * Ordre de distribution preflop (règle standard) :
- *   1. Burn une carte
- *   2. Distribuer 1 carte à chaque joueur dans l'ordre (SB → BB → ... → BTN)
- *   3. Distribuer 1 deuxième carte dans le même ordre
+ *   1. Distribuer 1 carte à chaque joueur dans l'ordre (SB → BB → ... → BTN)
+ *   2. Distribuer 1 deuxième carte dans le même ordre
  *
- * Pour le flop/turn/river : burn + distribution sur le board commun.
+ * Aucune carte n'est brûlée avant les cartes fermées : la brûlée n'existe qu'avant chaque
+ * carte commune. Le javadoc en annonçait une, le code n'en brûlait pas — et c'est le code
+ * qui avait raison.
+ *
+ * Pour le flop/turn/river : une brûlée, puis distribution sur le board commun.
  */
 public class DealerEngine {
 
@@ -96,8 +99,6 @@ public class DealerEngine {
 	public List<Card> getBoard() {
 		return new ArrayList<>(this.board);
 	}
-
-	public Deck getDeck() { return this.deck; }
 
 	public boolean isFlopDealt(){ 
 		return this.board.size() >= 3; 

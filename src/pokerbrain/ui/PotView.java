@@ -5,28 +5,28 @@ import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
-// Affiche le pot principal et les éventuels side pots (joueurs all-in).
+// Pot principal et éventuels side pots (joueurs à tapis). Habillage : classes pot__*.
 public class PotView extends VBox {
 
-    private final Label mainPotLabel = new Label("POT : 0 ");
+    private final Label mainPotLabel = new Label("Pot 0");
     private final HBox  sidePotsBox  = new HBox(10);
 
     public PotView() {
         setAlignment(Pos.CENTER);
-        setSpacing(4);
-        mainPotLabel.setStyle("-fx-text-fill: #d4af37; -fx-font-size: 16px; -fx-font-weight: bold;");
+        setSpacing(6);
+        mainPotLabel.getStyleClass().addAll("pot__main", "num");
         sidePotsBox.setAlignment(Pos.CENTER);
         getChildren().addAll(mainPotLabel, sidePotsBox);
     }
 
     public void setPot(double amount) {
-    	mainPotLabel.setText("POT : " + (int) amount + " jetons");
+        mainPotLabel.setText("Pot " + (int) amount);
     }
 
-    // Side pot créé quand un joueur est all-in
+    // Side pot créé quand un joueur est à tapis
     public void addSidePot(double amount, String players) {
-    	Label label = new Label("Side : " + (int) amount + " jetons (" + players + ")");
-        label.setStyle("-fx-text-fill: #a09070; -fx-font-size: 11px;");
+        Label label = new Label("Side " + (int) amount + " (" + players + ")");
+        label.getStyleClass().addAll("pot__side", "num");
         sidePotsBox.getChildren().add(label);
     }
 

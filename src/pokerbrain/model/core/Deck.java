@@ -60,28 +60,11 @@ public class Deck {
 		return card;
 	}
 	
-	public List<Card> dealMultiple(int count){
-		if (count < 0) {
-			throw new IllegalArgumentException("Count ne peut pas etre négatif");
-		}
-		if (count > cards.size()) {
-			throw new IllegalStateException("Pas assez de cartes");
-		}
-		
-		List<Card> dealt = new ArrayList<>(count);
-		for(int i=0;i<count;i++) {
-			dealt.add(deal());
-		}
-		return dealt;
-	}
 	
 	public void removeCards(Collection<Card> toRemove) {
 		cards.removeAll(toRemove);
 	}
 	
-	public void keepOnly(Collection<Card> toKeep) {
-		cards.retainAll(toKeep);
-	}
 	
 	public void burn() {
 		if (cards.isEmpty()) {
@@ -91,23 +74,10 @@ public class Deck {
 		dealtCards.add(burned);
 	}
 	
-	public int getRemainingSize() {
-		return cards.size();
-	}
 	
 	public List<Card> getRemainingCards(){
 		return new ArrayList<>(cards);
 	}
 	
-	public List<Card> getDealtCards(){
-		return new ArrayList<>(dealtCards);
-	}
 	
-	public Deck copy() {
-		Deck copy = new Deck();
-		copy.cards = new ArrayList<Card>(this.cards);
-		copy.dealtCards = new ArrayList<Card>(this.dealtCards);
-		copy.random = new Random();
-		return copy;
-	}
 }

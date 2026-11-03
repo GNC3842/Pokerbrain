@@ -1,0 +1,113 @@
+/*
+ * PokerBrain — identité visuelle : ardoise + ambre.
+ *
+ * Toutes les couleurs, graisses et rayons de l'application sont définis ICI, sous forme de
+ * couleurs nommées JavaFX (« looked-up colors »). Les feuilles components.css et
+ * screens.css n'utilisent que ces noms : changer la palette ne demande de toucher qu'à ce
+ * fichier, et plus un seul `style="-fx-..."` ne traîne dans les FXML ou les contrôleurs.
+ *
+ * Choix de fond : le vert feutre est RÉSERVÉ à l'ovale de la table (-pb-felt). Partout
+ * ailleurs le fond est ardoise, pour que l'application ressemble à un outil d'analyse et
+ * non à un tapis de casino. Une seule couleur d'accent (ambre) porte l'action principale.
+ *
+ * L'échelle d'analyse n'utilise pas le trio vert/orange/rouge saturé par défaut : teal →
+ * ambre → rose. Plus lisible sur fond sombre, et elle ne hurle pas.
+ */
+
+.root {
+    /* Fonds, du plus profond au plus clair */
+    -pb-bg:          #0F1115;
+    -pb-bg-elevated: #14171E;
+    -pb-surface:     #171A21;
+    -pb-surface-2:   #1F232C;
+    -pb-line:        #2A2F3A;
+
+    /* Textes */
+    -pb-text:        #E6E8EC;
+    -pb-text-dim:    #9AA3AF;
+    -pb-text-faint:  #646C7A;
+
+    /* Accent unique */
+    -pb-accent:      #E8A33D;
+    -pb-accent-soft: #3A2C16;
+    -pb-accent-text: #1A1206;
+
+    /* Feutre : l'ovale de la table, et rien d'autre */
+    -pb-felt:        #1E4034;
+    -pb-felt-edge:   #2C5A49;
+
+    /* Échelle sémantique de l'analyse */
+    -pb-good:        #3FB8A0;
+    -pb-mid:         #E8A33D;
+    -pb-bad:         #E8566F;
+
+    /* Cartes à jouer */
+    -pb-card-face:   #F4F1EA;
+    -pb-card-red:    #C0392B;
+    -pb-card-black:  #1B1B1B;
+    -pb-card-back:   #243040;
+
+    /*
+     * Pas de rayon nommé ici : les couleurs nommées de JavaFX ne valent que pour des
+     * couleurs. Un `-pb-radius: 8px` se relit en Double et fait échouer la conversion
+     * (« java.lang.Double cannot be cast to javafx.css.Size »), silencieusement, sur
+     * chaque règle qui l'utilise. Les rayons sont donc écrits en px : 4 pour les
+     * contrôles, 8 pour les cartons, 14 pour l'overlay.
+     */
+
+    -fx-background-color: -pb-bg;
+    -fx-font-family: "Inter", "Segoe UI", "DejaVu Sans", "Helvetica Neue", sans-serif;
+    -fx-font-size: 13px;
+    -fx-text-fill: -pb-text;
+}
+
+/* ── Typographie ──────────────────────────────────────────────────────────── */
+
+.label {
+    -fx-text-fill: -pb-text;
+}
+
+/* Libellé secondaire : légendes, unités, intitulés de champ */
+.muted {
+    -fx-text-fill: -pb-text-dim;
+    -fx-font-size: 11px;
+}
+
+.faint {
+    -fx-text-fill: -pb-text-faint;
+    -fx-font-size: 10px;
+}
+
+.accent {
+    -fx-text-fill: -pb-accent;
+}
+
+/*
+ * Chiffres : police à pas fixe pour les tapis, les pots et les pourcentages. JavaFX
+ * n'expose pas les chiffres tabulaires d'une police variable ; le pas fixe donne le même
+ * résultat utile — les colonnes ne tremblent plus quand un montant change.
+ */
+.num {
+    -fx-font-family: "DejaVu Sans Mono", "Consolas", monospace;
+}
+
+.title {
+    -fx-font-size: 17px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -pb-text;
+}
+
+.section-title {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -pb-accent;
+}
+
+/* ── Échelle d'analyse ────────────────────────────────────────────────────── */
+
+.score--good { -fx-text-fill: -pb-good; }
+.score--mid  { -fx-text-fill: -pb-mid;  }
+.score--bad  { -fx-text-fill: -pb-bad;  }
+
+.gain     { -fx-text-fill: -pb-good; }
+.loss     { -fx-text-fill: -pb-bad;  }

@@ -1,27 +1,29 @@
 package pokerbrain.ui;
 
-import javafx.geometry.Insets;
 import javafx.scene.control.Label;
 import javafx.scene.control.ScrollPane;
+import javafx.scene.layout.Priority;
 import javafx.scene.layout.VBox;
 
-// Historique scrollable des actions de la main, organisé par street (Preflop, Flop, …).
-// Chaque entry reçoit un index entier via setUserData() pour pouvoir être surlignée.
+/**
+ * Historique des actions de la main, groupé par street. Chaque entrée porte son index dans
+ * `setUserData()` pour que le replay puisse la surligner.
+ *
+ * Habillage : classes `timeline__*` (components.css). Le surlignage ajoute et retire une
+ * classe au lieu de réécrire deux chaînes de style quasi identiques.
+ */
 public class ActionTimeline extends VBox {
 
-    private final VBox entriesBox   = new VBox(4);
-    private String     currentRound = "";  // dernière street affichée, pour éviter les doublons de header
+    private final VBox entriesBox   = new VBox(2);
+    private String     currentRound = "";  // dernière street affichée, pour ne pas répéter l'en-tête
     private int        entryIndex   = 0;
 
     public ActionTimeline() {
-        entriesBox.setPadding(new Insets(8));
-        entriesBox.setStyle("-fx-background-color: #0a2e18;");
-
+        getStyleClass().add("timeline");
         ScrollPane scroll = new ScrollPane(entriesBox);
         scroll.setFitToWidth(true);
-        scroll.setPrefHeight(340);
-        scroll.setStyle("-fx-background-color: #0a2e18; -fx-background-radius: 6px; -fx-border-color: #1a5c32; -fx-border-radius: 6px;");
-
+        scroll.setMinHeight(160);
+        VBox.setVgrow(scroll, Priority.ALWAYS);
         getChildren().add(scroll);
     }
 
@@ -29,22 +31,21 @@ public class ActionTimeline extends VBox {
     public void addAction(String round, String player, String action) {
         if (!round.equals(currentRound)) {
             currentRound = round;
-            Label header = new Label("── " + round + " ──");
-            header.setStyle("-fx-text-fill: #d4af37; -fx-font-size: 11px; -fx-font-weight: bold; -fx-padding: 8 0 2 0;");
+            Label header = new Label(round);
+            header.getStyleClass().add("timeline__round");
             entriesBox.getChildren().add(header);
         }
-        Label entry = new Label(player + " : " + action);
-        entry.setStyle("-fx-text-fill: #c8d8c8; -fx-font-size: 12px; -fx-padding: 1 0 1 8;");
-        entry.setUserData(entryIndex++); // index stocké pour highlight
+        Label entry = new Label(player + " · " + action);
+        entry.getStyleClass().add("timeline__entry");
+        entry.setUserData(entryIndex++);
         entriesBox.getChildren().add(entry);
     }
 
     public void highlightEntry(int index) {
         for (var node : entriesBox.getChildren()) {
             if (node instanceof Label l && l.getUserData() instanceof Integer idx) {
-                l.setStyle(idx == index
-                    ? "-fx-text-fill: white; -fx-font-size: 12px; -fx-padding: 1 0 1 8; -fx-background-color: #1e5c32; -fx-background-radius: 3px;"
-                    : "-fx-text-fill: #c8d8c8; -fx-font-size: 12px; -fx-padding: 1 0 1 8;");
+                l.getStyleClass().remove("timeline__entry--current");
+                if (idx == index) l.getStyleClass().add("timeline__entry--current");
             }
         }
     }

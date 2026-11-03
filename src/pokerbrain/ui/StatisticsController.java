@@ -38,26 +38,35 @@ public class StatisticsController {
             handsPlayedLabel.setText("0");
             totalGainLabel.setText("Aucune main");
             biggestHandLabel.setText("—");
-            addLeak(false, "Aucune donnée",
+            addLeak(null, "Aucune donnée",
                 "Jouez une partie pour voir vos statistiques.\n"
                 + "Les mains sont sauvegardées dans " + SessionData.getHistoryManager().getHistoryDir());
             return;
         }
 
-        PlayerStatistics stats = PlayerStatisticsCalculator.calculate(hands, "hero", 10);
-        loadStats(stats.getVPIP(), stats.getPFR(), 0,
+        // La big blind vient des mains jouées, pas d'une constante : sinon le BB/100
+        // et le gain total sont exprimés dans une unité qui n'est pas celle de la table.
+        int bigBlind = hands.get(hands.size() - 1).getBigBlind();
+        // L'id du héro est celui que la main a enregistré, pas la constante "hero" : un
+        // autre id rendait des statistiques toutes nulles sans la moindre erreur.
+        String heroId = hands.get(hands.size() - 1).getHeroId();
+        PlayerStatistics stats = PlayerStatisticsCalculator.calculate(hands, heroId, bigBlind);
+        // -1 quand le joueur n'a jamais eu l'occasion de 3-better : afficher 0 % ferait
+        // croire à une fuite là où il n'y a simplement pas de donnée.
+        double threeBet = stats.hasThreeBetSample() ? stats.getThreeBet() : -1;
+        loadStats(stats.getVPIP(), stats.getPFR(), threeBet,
                   stats.getWTSD(), stats.getWSD(), stats.getBBPer100(),
-                  stats.getHandsPlayed(), stats.getTotalWinnings());
+                  stats.getHandsPlayed(), stats.getTotalWinnings() / (double) Math.max(1, bigBlind));
 
         clearLeaks();
         List<Leak> leaks = LeakDetector.detect(stats);
         for (Leak leak : leaks) {
-            addLeak(leak.getSeverity() != LeakSeverity.INFO,
+            addLeak(leak.getSeverity(),
                     leak.getCategory() + " — " + leak.getSeverity().getLabel(),
                     leak.getMessage() + "\n" + leak.getSuggestion());
         }
         if (leaks.isEmpty()) {
-            addLeak(false, "Aucun leak détecté", "Votre jeu semble solide !");
+            addLeak(null, "Aucune fuite détectée", "Votre jeu semble solide.");
         }
     }
 
@@ -66,39 +75,50 @@ public class StatisticsController {
                           int handsPlayed, double totalGain) {
         vpipLabel.setText(String.format("%.0f%%", vpip));
         pfrLabel.setText(String.format("%.0f%%", pfr));
-        threeBetLabel.setText(String.format("%.0f%%", threeBet));
+        threeBetLabel.setText(threeBet < 0 ? "—" : String.format("%.0f%%", threeBet));
         wtsdLabel.setText(String.format("%.0f%%", wtsd));
         wsdLabel.setText(String.format("%.0f%%", wsd));
         bbPer100Label.setText(String.format("%+.1f", bbPer100));
-        // BB/100 en vert si positif, rouge si négatif
-        bbPer100Label.setStyle("-fx-text-fill: " + (bbPer100 >= 0 ? "#2ecc71" : "#e74c3c")
-                + "; -fx-font-size: 24px; -fx-font-weight: bold;");
+        // Gagnant ou perdant : la couleur vient de la palette, pas d'un code en dur
+        bbPer100Label.getStyleClass().setAll("stat-tile__value", "num",
+                                             bbPer100 >= 0 ? "gain" : "loss");
 
         handsPlayedLabel.setText(String.valueOf(handsPlayed));
         totalGainLabel.setText(String.format("%+.1f BB", totalGain));
 
         var chartData = new LinkedHashMap<String, Double>();
-        chartData.put("VPIP", vpip); chartData.put("PFR", pfr); chartData.put("3-Bet", threeBet);
+        chartData.put("VPIP", vpip); chartData.put("PFR", pfr);
+        chartData.put("3-Bet", Math.max(0, threeBet));
         chartData.put("WTSD", wtsd); chartData.put("W$SD", wsd);
         winrateChart.setEquities(chartData);
     }
 
-    // Ajoute une fuite (warning=true) ou un bon point (warning=false) dans le panneau de conseils
-    public void addLeak(boolean warning, String title, String description) {
-        String color = warning ? "#e67e22" : "#2ecc71";
-
-        Label titleLabel = new Label((warning ? "⚠" : "✓") + "  " + title);
-        titleLabel.setStyle("-fx-text-fill: " + color + "; -fx-font-size: 13px; -fx-font-weight: bold;");
+    /**
+     * Ajoute une fuite au panneau. La sévérité ne choisit plus une couleur en dur mais une
+     * classe CSS (`leak--info` / `--moderate` / `--critical`, définies dans screens.css),
+     * qui ne porte que le liseré gauche : le texte reste à pleine lisibilité.
+     * `severite == null` = aucun problème détecté.
+     */
+    public void addLeak(LeakSeverity severite, String title, String description) {
+        Label titleLabel = new Label(title);
+        titleLabel.getStyleClass().add("leak__title");
 
         Label descLabel = new Label(description);
         descLabel.setWrapText(true);
-        descLabel.setStyle("-fx-text-fill: #a09070; -fx-font-size: 12px;");
+        descLabel.getStyleClass().add("leak__detail");
 
         VBox box = new VBox(4, titleLabel, descLabel);
-        box.setStyle("-fx-background-color: #0f3020; -fx-background-radius: 6px;"
-                + "-fx-border-color: " + color + "; -fx-border-radius: 6px;"
-                + "-fx-border-width: 0 0 0 3px; -fx-padding: 8 12 8 12;");
+        box.getStyleClass().addAll("leak", classePourSeverite(severite));
         leaksContainer.getChildren().add(box);
+    }
+
+    private static String classePourSeverite(LeakSeverity severite) {
+        if (severite == null) return "leak--info";
+        return switch (severite) {
+            case CRITICAL -> "leak--critical";
+            case WARNING  -> "leak--moderate";
+            case INFO     -> "leak--info";
+        };
     }
 
     public void clearLeaks() { leaksContainer.getChildren().clear(); }

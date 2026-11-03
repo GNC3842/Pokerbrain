@@ -1,5 +1,7 @@
 package pokerbrain.ui;
 
+import pokerbrain.Debug;
+
 import pokerbrain.model.history.Hand;
 import pokerbrain.parser.HistoryManager;
 import java.util.List;
@@ -12,7 +14,7 @@ public final class SessionData {
     public static void initHistory() {
         if (historyManager == null) {
             historyManager = new HistoryManager();
-            System.out.println("[SessionData] Historique : " + historyManager.getHistoryDir());
+            Debug.log(() -> "[SessionData] Historique : " + historyManager.getHistoryDir());
         }
     }
 

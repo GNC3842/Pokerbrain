@@ -42,9 +42,6 @@ public final class BotProfile {
     public String getName() {
     	return this.name;
     }
-    public double getAggressionFactor() {
-    	return this.aggressionFactor;
-    }
     public double getCBetFrequency() {
     	return this.cBetFrequency;
     }

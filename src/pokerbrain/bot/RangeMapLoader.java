@@ -32,9 +32,6 @@ import java.util.*;
  *   // Depuis le classpath (src/main/resources/ranges/)
  *   RangeMap map = RangeMapLoader.fromClasspath("ranges/tag_btn.csv");
  *
- *   // Depuis un chemin absolu (fichier utilisateur)
- *   RangeMap map = RangeMapLoader.fromFile(Paths.get("/mes/ranges/custom.csv"));
- *
  *   // Construire un BotProfile avec des fichiers differents par position
  *   BotProfile profil = RangeMapLoader.loadProfile("ranges/tag", ...);
  */
@@ -62,19 +59,6 @@ public final class RangeMapLoader {
     	try (BufferedReader br = new BufferedReader(new InputStreamReader(is))) {
             return parse(br, resourcePath);
         }
-    }
-
-    //Chargement depuis le systeme de fichiers 
-    //Charge une RangeMap depuis un chemin absolue ou relatif
-
-    public static RangeMap fromFile(Path path) throws IOException {
-        try (BufferedReader br = Files.newBufferedReader(path)) {
-            return parse(br, path.toString());
-        }
-    }
-
-    public static RangeMap fromFile(String path) throws IOException {
-        return fromFile(Paths.get(path));
     }
 
     //Chargement silencieux (avec fallback)
@@ -203,19 +187,24 @@ public final class RangeMapLoader {
     public static BotProfile loadProfileFromClasspath(
             String name,
             String btnPath, String coPath, String utgPath,
+            String sbPath, String bbPath,
             BotProfile.PostflopParams params) {
 
         RangeMap btn = fromClasspathOrEmpty(btnPath);
         RangeMap co  = fromClasspathOrEmpty(coPath);
         RangeMap utg = fromClasspathOrEmpty(utgPath);
+        RangeMap sb  = fromClasspathOrEmpty(sbPath);
+        RangeMap bb  = fromClasspathOrEmpty(bbPath);
 
         return new BotProfile.Builder()
             .name(name)
             // LATE POSITIONS
             .range(pokerbrain.model.game.Position.BTN,  btn)
-            // CORRECTION CRITIQUE : Fallback pour que le bot joue dans les blindes
-            .range(pokerbrain.model.game.Position.SB,   btn) 
-            .range(pokerbrain.model.game.Position.BB,   co)  
+            // BLINDES : leurs propres heatmaps. Le repli SB→BTN / BB→CO faisait ouvrir
+            // la SB avec une range de bouton (bien trop large hors de position) et
+            // défendre la BB avec une range de CO.
+            .range(pokerbrain.model.game.Position.SB,   sb)
+            .range(pokerbrain.model.game.Position.BB,   bb)
             // MIDDLE POSITIONS
             .range(pokerbrain.model.game.Position.CO,   co)
             .range(pokerbrain.model.game.Position.HJ,   co)

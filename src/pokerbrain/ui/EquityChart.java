@@ -3,17 +3,25 @@ package pokerbrain.ui;
 import javafx.geometry.Pos;
 import javafx.scene.control.Label;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
-// Graphique en barres représentant les équités (ex. Héro vs Villain, ou stats VPIP/PFR/…).
-// Les barres sont proportionnelles au pourcentage, plafonnées à MAX_HEIGHT pixels.
+/**
+ * Barres d'équité (héro / partage / adversaire, ou statistiques).
+ *
+ * Les couleurs viennent de la palette via des classes CSS (`chart-bar--hero`,
+ * `--villain`, `--neutral`) : le tableau de quatre couleurs en dur, dont le vert et le
+ * rouge saturés, a disparu.
+ */
 public class EquityChart extends VBox {
 
-    private static final double MAX_HEIGHT = 110.0;
-    private static final String[] COLORS   = { "#2ecc71", "#e74c3c", "#3498db", "#f39c12" };
+    private static final double HAUTEUR_MAX = 110.0;
+    private static final List<String> SERIES =
+        List.of("chart-bar--hero", "chart-bar--villain", "chart-bar--neutral");
 
     private final HBox barsArea   = new HBox(16);
     private final HBox labelsArea = new HBox(16);
@@ -21,39 +29,38 @@ public class EquityChart extends VBox {
     public EquityChart() {
         setSpacing(4);
         barsArea.setAlignment(Pos.BOTTOM_CENTER);
-        barsArea.setPrefHeight(MAX_HEIGHT + 20);
+        barsArea.setPrefHeight(HAUTEUR_MAX + 20);
         labelsArea.setAlignment(Pos.CENTER);
         getChildren().addAll(barsArea, labelsArea);
     }
 
     public void setEquities(Map<String, Double> equities) {
-        barsArea.getChildren().clear();
-        labelsArea.getChildren().clear();
+        reset();
 
         int i = 0;
         for (var entry : equities.entrySet()) {
-            String color  = COLORS[i % COLORS.length];
             double pct    = entry.getValue();
-            double height = Math.max(4, pct / 100.0 * MAX_HEIGHT);
+            double hauteur = Math.max(4, pct / 100.0 * HAUTEUR_MAX);
 
-            VBox bar = new VBox();
-            bar.setPrefSize(60, height);
-            bar.setMaxHeight(height);
-            bar.setStyle("-fx-background-color: " + color + "; -fx-background-radius: 4px 4px 0 0;");
+            Region bar = new Region();
+            bar.getStyleClass().addAll("chart-bar", SERIES.get(i % SERIES.size()));
+            bar.setPrefSize(56, hauteur);
+            bar.setMinHeight(hauteur);
+            bar.setMaxHeight(hauteur);
 
-            Label pctLabel = new Label(String.format("%.1f%%", pct));
-            pctLabel.setStyle("-fx-text-fill: white; -fx-font-size: 11px; -fx-font-weight: bold;");
+            Label pctLabel = new Label(String.format("%.1f %%", pct));
+            pctLabel.getStyleClass().addAll("chart__value", "num");
 
-            VBox column = new VBox(3, pctLabel, bar);
-            column.setAlignment(Pos.BOTTOM_CENTER);
-            column.setPrefWidth(70);
+            VBox colonne = new VBox(3, pctLabel, bar);
+            colonne.setAlignment(Pos.BOTTOM_CENTER);
+            colonne.setPrefWidth(70);
 
             Label nameLabel = new Label(entry.getKey());
+            nameLabel.getStyleClass().add("chart__name");
             nameLabel.setPrefWidth(70);
             nameLabel.setAlignment(Pos.CENTER);
-            nameLabel.setStyle("-fx-text-fill: #a09070; -fx-font-size: 11px;");
 
-            barsArea.getChildren().add(column);
+            barsArea.getChildren().add(colonne);
             labelsArea.getChildren().add(nameLabel);
             i++;
         }
@@ -67,7 +74,7 @@ public class EquityChart extends VBox {
     public void setHeroVillain(double heroEquity) {
         Map<String, Double> m = new LinkedHashMap<>();
         m.put("Héro", heroEquity);
-        m.put("Villain", 100.0 - heroEquity);
+        m.put("Adversaire", 100.0 - heroEquity);
         setEquities(m);
     }
 }

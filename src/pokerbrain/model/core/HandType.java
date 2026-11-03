@@ -27,15 +27,4 @@ public enum HandType {
 	public String getName() {
 		return this.name;
 	}
-
-	private static final HandType[] BY_BASE_VALUE = new HandType[10];
-	static {
-		for (HandType t : values()) BY_BASE_VALUE[t.baseValue] = t;
-	}
-
-	public static HandType fromBaseValue(int baseValue) {
-		if (baseValue < 0 || baseValue >= BY_BASE_VALUE.length)
-			throw new IllegalArgumentException("Unknown baseValue: " + baseValue);
-		return BY_BASE_VALUE[baseValue];
-	}
 }
