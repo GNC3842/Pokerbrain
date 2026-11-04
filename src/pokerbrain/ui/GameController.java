@@ -1,5 +1,4 @@
 package pokerbrain.ui;
-import javafx.animation.FadeTransition;
 import javafx.animation.PauseTransition;
 import javafx.concurrent.Task;
 import javafx.fxml.FXML;
@@ -57,6 +56,8 @@ public class GameController {
     @FXML private StackPane overlay;
     @FXML private Label     overlayTitle;
     @FXML private Label     overlayDetail;
+    @FXML private VBox      recapBox;
+    @FXML private Button    nextHandButton;
 
 
     private PlayerView     hero;
@@ -67,6 +68,9 @@ public class GameController {
     private GameSession              session;
     private Map<String, PlayerView>  playerViews = new HashMap<>();
     private Label                    equityLabel;
+
+    private int     heroStackAvantMain;  // relevé avant les blindes : donne le résultat net
+    private boolean partieFinie;         // le bouton du récap renvoie au menu
 
     @FXML
     public void initialize() {
@@ -163,9 +167,11 @@ public class GameController {
 
     private void startNewHand() {
         try {
-            masquerAnnonce();
+            masquerRecap();
             clearHistory();
             for (CardView cv : communityCards) cv.showEmpty();
+            // Avant les blindes : `startNewHand()` les prélève déjà
+            heroStackAvantMain = heroPlayer().getStack();
             session.startNewHand();
             refreshAllPlayerViews();
             updatePotLabel();
@@ -233,9 +239,9 @@ public class GameController {
     }
 
     private void handleShowdown() {
-        Map<Player, Integer> winnings = new HashMap<>();
+        List<String> recap = new ArrayList<>();
         try {
-            winnings = session.getGame().showdown();
+            Map<Player, Integer> winnings = session.getGame().showdown();
             SessionData.addHand(session.buildAndCloseHand(winnings));
             List<Card> board = session.getGame().getBoard();
             for (Player p : session.getGame().getPlayers()) {
@@ -244,76 +250,97 @@ public class GameController {
                     if (view != null) view.setPlayer(p);
                     // Main abattue en clair : « Full aux Rois » plutôt qu'une classe 1-7462
                     HandRank rank = FastHandEvaluator.describeBestHand(p.getHoleCards(), board);
-                    if (rank != null)
+                    if (rank != null) {
                         addActionToHistory("Abattage", p.getName(), rank.describe());
+                        recap.add(p.getName() + " · " + cartes(p.getHoleCards())
+                            + " — " + rank.describe());
+                    }
                 }
             }
             for (Map.Entry<Player, Integer> e : winnings.entrySet()) {
-                if (e.getValue() > 0)
+                if (e.getValue() > 0) {
                     addActionToHistory("Abattage", e.getKey().getName(),
                         "gagne " + e.getValue() + " jetons");
+                    recap.add(e.getKey().getName() + " remporte " + e.getValue() + " jetons");
+                }
             }
             refreshAllPlayerViews(true);
         } catch (Exception e) {
             System.err.println("Erreur showdown : " + e.getMessage());
         }
-
-        Player heroPlayer = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
-        int heroWin = winnings.getOrDefault(heroPlayer, 0);
-        annoncer(heroWin > 0 ? "Main gagnée" : "Main perdue",
-                 heroWin > 0 ? "+ " + heroWin + " jetons"
-                             : "L'adversaire remporte le pot.");
-        handleHandOver();
+        handleHandOver(recap);
     }
 
+    // Fin anticipée (fold général, tous à tapis) : le récap se reconstruit des gains du moteur
     private void handleHandOver() {
+        handleHandOver(new ArrayList<>());
+    }
+
+    private void handleHandOver(List<String> recap) {
+        // Après un showdown le record est déjà clos : l'appel rend null et ne réécrit rien
         SessionData.addHand(session.buildAndCloseHand());
-
-    	Player heroPlayer = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
-    	if (!heroPlayer.isFolded() && !heroPlayer.isOut()) {
-    	    long activePlayers = session.getGame().getPlayers().stream()
-    	        .filter(p -> !p.isFolded() && !p.isOut()).count();
-    	    if (activePlayers == 1) {
-    	        annoncer("Pot remporté", "Tous les adversaires se sont couchés.");
-    	    }
-    	}
         disableActions();
-        long playersWithChips = session.getGame().getPlayers().stream()
-            .filter(p -> p.getStack() > 0).count();
 
-        int delaySeconds = playersWithChips < 2 ? 3 : 2;
-        PauseTransition pause = new PauseTransition(Duration.seconds(delaySeconds));
-        pause.setOnFinished(e -> {
-            if (playersWithChips < 2) MainController.goToMenu();
-            else                      startNewHand();
-        });
-        pause.play();
+        if (recap.isEmpty())
+            session.getGame().getWinnings().forEach((p, gain) -> {
+                if (gain > 0)
+                    recap.add(p.getName() + " remporte " + gain + " jetons sans abattage");
+            });
+
+        List<Card> board = session.getGame().getBoard();
+        if (!board.isEmpty()) recap.add(0, "Board · " + cartes(board));
+        recap.add("Tapis · " + heroPlayer().getName() + " " + heroPlayer().getStack() + " jetons");
+
+        partieFinie = session.getGame().getPlayers().stream()
+            .filter(p -> p.getStack() > 0).count() < 2;
+
+        int net = heroPlayer().getStack() - heroStackAvantMain;
+        montrerRecap(net > 0 ? "Main gagnée" : net < 0 ? "Main perdue" : "Main nulle",
+                     String.format("%+d jetons", net), recap);
     }
 
     /**
-     * Annonce de fin de main, superposée à la table.
+     * Récapitulatif de fin de main, superposé à la table et fermé par le joueur.
      *
      * Remplace les `Alert` natifs : `showAndWait()` bloquait le thread FX au milieu des
      * `PauseTransition` de la boucle de jeu (la main suivante démarrait pendant que la
      * fenêtre modale était encore ouverte), et la fenêtre système ignorait complètement le
-     * thème. L'overlay vit dans la scène, ne bloque rien, et s'effface tout seul.
+     * thème. L'overlay vit dans la scène et ne bloque rien.
      */
-    private void annoncer(String titre, String detail) {
+    private void montrerRecap(String titre, String detail, List<String> lignes) {
         overlayTitle.setText(titre);
         overlayDetail.setText(detail);
+        recapBox.getChildren().clear();
+        for (String ligne : lignes) {
+            Label l = new Label(ligne);
+            l.getStyleClass().add("timeline__entry");
+            recapBox.getChildren().add(l);
+        }
+        nextHandButton.setText(partieFinie ? "Retour au menu" : "Main suivante");
         overlay.setVisible(true);
         overlay.setManaged(true);
         overlay.setOpacity(1);
-
-        FadeTransition fondu = new FadeTransition(Duration.millis(500), overlay);
-        fondu.setDelay(Duration.millis(1400));
-        fondu.setFromValue(1);
-        fondu.setToValue(0);
-        fondu.setOnFinished(e -> masquerAnnonce());
-        fondu.play();
+        nextHandButton.requestFocus();
     }
 
-    private void masquerAnnonce() {
+    @FXML
+    private void onNextHand() {
+        masquerRecap();
+        if (partieFinie) MainController.goToMenu();
+        else             startNewHand();
+    }
+
+    private Player heroPlayer() {
+        return session.getGame().getPlayers().get(session.getHeroPlayerIndex());
+    }
+
+    private static String cartes(List<Card> cards) {
+        StringBuilder sb = new StringBuilder();
+        for (Card c : cards) sb.append(sb.isEmpty() ? "" : " ").append(c);
+        return sb.toString();
+    }
+
+    private void masquerRecap() {
         overlay.setVisible(false);
         overlay.setManaged(false);
     }
@@ -407,24 +434,25 @@ public class GameController {
         checkCallButton.setDisable(!canCheck && !canCall);
         if (canCall) {
             int callAmt = session.getGame().getCallAmount();
-            checkCallButton.setText("Suivre " + callAmt);
+            checkCallButton.setText(ActionType.CALL.getLabel() + " " + callAmt);
         } else {
-            checkCallButton.setText("Parole");
+            checkCallButton.setText(ActionType.CHECK.getLabel());
         }
 
         boolean canRaise = valid.contains(ActionType.RAISE);
         boolean canBet   = valid.contains(ActionType.BET);
         boolean canAllIn = valid.contains(ActionType.ALL_IN);
         raiseButton.setDisable(!canRaise && !canBet && !canAllIn);
-        raiseButton.setText(canRaise ? "Relancer" : canBet ? "Miser" : "Tapis");
+        raiseButton.setText((canRaise ? ActionType.RAISE
+                          : canBet   ? ActionType.BET
+                                     : ActionType.ALL_IN).getLabel());
 
         if (canRaise || canBet) {
-            Player heroPlayer = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
             int minR = session.getGame().getMinRaiseTo();
             // Le slider porte un TOTAL à atteindre sur la street. Le plafond n'est donc pas
             // le tapis mais « ce qui est déjà engagé + le tapis » : relancer *à* `stack`
             // coûte `callAmount + (stack - currentBetLevel)`, soit plus que le tapis.
-            int maxR = heroPlayer.getCurrentBet() + heroPlayer.getStack();
+            int maxR = heroPlayer().getCurrentBet() + heroPlayer().getStack();
             raiseSlider.setDisable(false);
             raiseSlider.setMin(minR);
             raiseSlider.setMax(Math.max(minR, maxR));
@@ -443,8 +471,7 @@ public class GameController {
     }
 
     private void updateHeroEquity() {
-        Player heroP = session.getGame().getPlayers().get(session.getHeroPlayerIndex());
-        List<Card> hole = heroP.getHoleCards();
+        List<Card> hole = heroPlayer().getHoleCards();
         if (hole.size() != 2) {
             return;
         }
@@ -518,14 +545,8 @@ public class GameController {
     }
 
     private String formatAction(Action action) {
-        return switch (action.getType()) {
-            case FOLD   -> "se couche";
-            case CHECK  -> "parole";
-            case CALL   -> "suit " + action.getAmount();
-            case BET    -> "mise " + action.getAmount();
-            case RAISE  -> "relance " + action.getAmount();
-            case ALL_IN -> "tapis " + action.getAmount();
-        };
+        String nom = action.getType().getLabel();
+        return action.getType().involvesMoney() ? nom + " " + action.getAmount() : nom;
     }
 
     // ── API publique (appelée depuis l'extérieur ou le FXML) ──────────────────

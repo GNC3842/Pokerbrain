@@ -121,7 +121,7 @@ public class AdviceCard extends VBox {
             StringBuilder ordre = new StringBuilder("Ordre de préférence : ");
             for (int i = 0; i < advice.getAlternatives().size(); i++) {
                 if (i > 0) ordre.append(" > ");
-                ordre.append(nom(advice.getAlternatives().get(i)));
+                ordre.append(advice.getAlternatives().get(i).getLabel());
             }
             alternatives.setText(ordre.toString());
         }
@@ -161,17 +161,6 @@ public class AdviceCard extends VBox {
 
     private static String libelle(ActionType type, int montant) {
         if (type == null) return "—";
-        return montant > 0 ? nom(type) + " " + montant : nom(type);
-    }
-
-    private static String nom(ActionType type) {
-        return switch (type) {
-            case FOLD   -> "se coucher";
-            case CHECK  -> "parole";
-            case CALL   -> "suivre";
-            case BET    -> "miser";
-            case RAISE  -> "relancer";
-            case ALL_IN -> "tapis";
-        };
+        return montant > 0 ? type.getLabel() + " " + montant : type.getLabel();
     }
 }

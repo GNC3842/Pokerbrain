@@ -117,14 +117,7 @@ public class ScoredTimeline extends VBox {
     }
 
     private static String decrire(Action action) {
-        String nom = switch (action.getType()) {
-            case FOLD   -> "se couche";
-            case CHECK  -> "parole";
-            case CALL   -> "suit";
-            case BET    -> "mise";
-            case RAISE  -> "relance";
-            case ALL_IN -> "tapis";
-        };
+        String nom = action.getType().getLabel();
         return action.getType().involvesMoney() && action.getAmount() > 0
             ? nom + " " + action.getAmount()
             : nom;

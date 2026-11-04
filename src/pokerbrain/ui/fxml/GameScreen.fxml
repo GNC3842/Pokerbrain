@@ -70,15 +70,15 @@
 
                 <VBox alignment="CENTER" spacing="10" HBox.hgrow="ALWAYS">
                     <HBox spacing="12" alignment="CENTER">
-                        <Button fx:id="foldButton" text="Se coucher" onAction="#onFold"
+                        <Button fx:id="foldButton" text="Fold" onAction="#onFold"
                                 styleClass="btn, btn--danger, btn--table"/>
-                        <Button fx:id="checkCallButton" text="Parole" onAction="#onCall"
+                        <Button fx:id="checkCallButton" text="Check" onAction="#onCall"
                                 styleClass="btn, btn--table"/>
-                        <Button fx:id="raiseButton" text="Relancer" onAction="#onRaise"
+                        <Button fx:id="raiseButton" text="Raise" onAction="#onRaise"
                                 styleClass="btn, btn--primary, btn--table"/>
                     </HBox>
                     <HBox spacing="10" alignment="CENTER">
-                        <Label text="Relancer à" styleClass="muted"/>
+                        <Label text="Raise to" styleClass="muted"/>
                         <Slider fx:id="raiseSlider" min="0" max="0" value="0"
                                 minWidth="160" prefWidth="240" disable="true"
                                 HBox.hgrow="ALWAYS"/>
@@ -90,12 +90,15 @@
 
     </BorderPane>
 
-    <!-- Annonce de fin de main : non bloquante, masquée par défaut -->
+    <!-- Récapitulatif de fin de main : non bloquant, masqué par défaut -->
     <StackPane fx:id="overlay" styleClass="overlay" visible="false" managed="false">
-        <VBox alignment="CENTER" spacing="8" styleClass="overlay__box" maxWidth="420"
-              maxHeight="200">
+        <VBox alignment="CENTER" spacing="10" styleClass="overlay__box" maxWidth="460"
+              maxHeight="440">
             <Label fx:id="overlayTitle" text="" styleClass="overlay__title"/>
             <Label fx:id="overlayDetail" text="" styleClass="overlay__detail" wrapText="true"/>
+            <VBox fx:id="recapBox" alignment="CENTER_LEFT" spacing="2"/>
+            <Button fx:id="nextHandButton" text="Main suivante" onAction="#onNextHand"
+                    styleClass="btn, btn--primary"/>
         </VBox>
     </StackPane>
 
