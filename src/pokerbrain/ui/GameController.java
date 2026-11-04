@@ -289,7 +289,7 @@ public class GameController {
 
         List<Card> board = session.getGame().getBoard();
         if (!board.isEmpty()) recap.add(0, "Board · " + cartes(board));
-        recap.add("Tapis · " + heroPlayer().getName() + " " + heroPlayer().getStack() + " jetons");
+        recap.add("Il vous reste " + heroPlayer().getStack() + " jetons");
 
         partieFinie = session.getGame().getPlayers().stream()
             .filter(p -> p.getStack() > 0).count() < 2;

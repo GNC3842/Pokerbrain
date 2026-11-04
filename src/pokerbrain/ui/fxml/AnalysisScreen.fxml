@@ -61,23 +61,28 @@
                     <Label fx:id="handSummaryLabel" styleClass="faint" wrapText="true"/>
                 </VBox>
 
-                <VBox spacing="12" HBox.hgrow="ALWAYS">
-                    <StackPane fx:id="tableBox" VBox.vgrow="ALWAYS" minHeight="260"/>
+                <!-- minWidth explicite : sans lui, la largeur minimale de la table est
+                     calculée sur ses sièges, l'HBox ne peut plus la rétrécir, et c'est la
+                     colonne des conseils (dernière) qui sort de la fenêtre. -->
+                <VBox spacing="12" HBox.hgrow="ALWAYS" minWidth="200">
+                    <StackPane fx:id="tableBox" VBox.vgrow="ALWAYS" minHeight="260" minWidth="0"/>
                     <VBox fx:id="curveBox" spacing="4" styleClass="panel">
                         <Label text="Équité du héro au fil de la main" styleClass="muted"/>
                     </VBox>
                 </VBox>
 
-                <ScrollPane fitToWidth="true" minWidth="280" prefWidth="330">
-                    <VBox fx:id="adviceBox" spacing="12"/>
-                </ScrollPane>
+                <!-- Colonne des conseils : le carton occupe toute la hauteur (cf.
+                     AdviceCard), il n'y a donc rien à faire défiler sur le côté -->
+                <VBox fx:id="adviceBox" spacing="12" minWidth="340" prefWidth="400"/>
             </HBox>
 
             <!-- ── Mode spot libre ──────────────────────────────────────────── -->
             <HBox fx:id="spotPane" spacing="14" visible="false" managed="false">
                 <padding><Insets top="14" bottom="8" left="14" right="14"/></padding>
 
-                <ScrollPane fitToWidth="true" minWidth="320" prefWidth="380">
+                <!-- 440 px : la grille 4×13 des sélecteurs y tient en entier, sinon les
+                     dernières colonnes sont rognées (cf. `.picker__cell`) -->
+                <ScrollPane fitToWidth="true" minWidth="440" prefWidth="460">
                     <VBox fx:id="pickersBox" spacing="12"/>
                 </ScrollPane>
 
@@ -112,6 +117,21 @@
                     <VBox fx:id="spotChartBox" styleClass="panel" VBox.vgrow="ALWAYS"/>
                 </VBox>
             </HBox>
+
+            <!--
+              Récapitulatif de fin de main, affiché en arrivant sur la dernière action.
+              Posé dans le StackPane du centre et non sur la racine : la barre de
+              navigation du bas reste cliquable pour revenir en arrière.
+            -->
+            <StackPane fx:id="recapOverlay" styleClass="overlay" visible="false" managed="false">
+                <VBox alignment="CENTER" spacing="10" styleClass="overlay__box" maxWidth="520"
+                      maxHeight="460">
+                    <Label fx:id="recapTitle" styleClass="overlay__title"/>
+                    <Label fx:id="recapDetail" styleClass="overlay__detail" wrapText="true"/>
+                    <VBox fx:id="recapBox" alignment="CENTER_LEFT" spacing="2"/>
+                    <Button text="Fermer" onAction="#onCloseRecap" styleClass="btn, btn--primary"/>
+                </VBox>
+            </StackPane>
 
         </StackPane>
     </center>

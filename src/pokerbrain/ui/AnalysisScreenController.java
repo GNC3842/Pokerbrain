@@ -21,8 +21,10 @@ import pokerbrain.engine.EquityCalculator;
 import pokerbrain.model.core.Card;
 import pokerbrain.model.game.Action;
 import pokerbrain.model.game.BettingRound;
+import pokerbrain.model.game.PlayerStatus;
 import pokerbrain.model.history.GameState;
 import pokerbrain.model.history.Hand;
+import pokerbrain.model.history.PlayerState;
 import pokerbrain.simulator.MonteCarloEngine;
 
 import java.util.ArrayList;
@@ -57,6 +59,10 @@ public class AnalysisScreenController {
     @FXML private Label     handSummaryLabel;
     @FXML private Label     stepCounterLabel;
     @FXML private Button    playButton;
+    @FXML private StackPane recapOverlay;
+    @FXML private Label     recapTitle;
+    @FXML private Label     recapDetail;
+    @FXML private VBox      recapBox;
 
     // Mode spot
     @FXML private VBox   pickersBox;
@@ -130,6 +136,7 @@ public class AnalysisScreenController {
         curveBox.getChildren().add(curve);
 
         adviceCard = new AdviceCard();
+        VBox.setVgrow(adviceCard, Priority.ALWAYS);
         adviceBox.getChildren().add(adviceCard);
     }
 
@@ -197,7 +204,7 @@ public class AnalysisScreenController {
         spotPane.setManaged(!replay);
         navBar.setVisible(replay);
         navBar.setManaged(replay);
-        if (!replay) arreterLecture();
+        if (!replay) { arreterLecture(); masquerRecap(); }
     }
 
     /**
@@ -298,6 +305,11 @@ public class AnalysisScreenController {
         timeline.setCurrent(currentStep);
         curve.setCurrent(currentStep);
 
+        // Dernière action de la main : on referme la boucle par le récapitulatif, comme la
+        // table de jeu le fait en fin de main
+        if (currentStep == actions.size() - 1 && actions.size() > 1) montrerRecap();
+        else                                                        masquerRecap();
+
         ActionAdvice conseil = adviceMap.get(currentStep);
         if (conseil != null) {
             adviceCard.setAdvice(conseil);
@@ -376,6 +388,61 @@ public class AnalysisScreenController {
         if (gain > 0) resume.append(" Main gagnée : +").append(gain).append(" jetons.");
         return resume.toString();
     }
+
+    /**
+     * Récapitulatif de la main rejouée : board, mains qui sont allées au bout, gains, et le
+     * résumé d'analyse déjà calculé pour le panneau de gauche.
+     */
+    private void montrerRecap() {
+        int gain = hand.getHeroWinnings();
+        recapTitle.setText(gain > 0 ? "Main gagnée" : "Main perdue");
+        recapDetail.setText(analysisPending ? "Analyse en cours…" : resumeDeMain());
+
+        recapBox.getChildren().clear();
+        List<Card> board = hand.getBoard();
+        if (board != null && !board.isEmpty()) ligneRecap("Board · " + cartes(board));
+
+        // Les cartes fermées ne sont dites que pour ceux qui n'ont pas couché : le dernier
+        // snapshot porte les statuts de fin de main.
+        GameState fin = states.isEmpty() ? null : states.get(states.size() - 1);
+        if (fin != null) {
+            for (PlayerState ps : fin.getPlayers()) {
+                if (ps.getStatus() == PlayerStatus.FOLDED || ps.getHoleCards().isEmpty()) continue;
+                ligneRecap(ps.getName() + " · " + cartes(ps.getHoleCards()));
+            }
+        }
+        for (var e : hand.getWinnings().entrySet()) {
+            if (e.getValue() > 0) ligneRecap(nomDe(e.getKey()) + " remporte " + e.getValue() + " jetons");
+        }
+
+        recapOverlay.setVisible(true);
+        recapOverlay.setManaged(true);
+    }
+
+    private void ligneRecap(String texte) {
+        Label l = new Label(texte);
+        l.getStyleClass().add("timeline__entry");
+        recapBox.getChildren().add(l);
+    }
+
+    private String nomDe(String playerId) {
+        for (PlayerState ps : hand.getInitialStates())
+            if (ps.getId().equals(playerId)) return ps.getName();
+        return playerId;
+    }
+
+    private static String cartes(List<Card> cards) {
+        StringBuilder sb = new StringBuilder();
+        for (Card c : cards) sb.append(sb.isEmpty() ? "" : " ").append(c);
+        return sb.toString();
+    }
+
+    private void masquerRecap() {
+        recapOverlay.setVisible(false);
+        recapOverlay.setManaged(false);
+    }
+
+    @FXML private void onCloseRecap() { masquerRecap(); }
 
     @FXML private void onPrevStep()  { arreterLecture(); afficherEtape(currentStep - 1); }
     @FXML private void onNextStep()  { afficherEtape(currentStep + 1); }

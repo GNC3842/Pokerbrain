@@ -365,7 +365,11 @@
     -fx-font-size: 12px;
     -fx-font-family: "DejaVu Sans Mono", "Consolas", monospace;
     -fx-cursor: hand;
-    -fx-min-width: 34px;
+    /* 13 colonnes + 12 gouttières de 3px doivent tenir dans la colonne de gauche du mode
+       spot (voir sa largeur dans AnalysisScreen.fxml) : au-delà, les petites cartes de la
+       droite de la grille sont rognées sans aucune erreur. */
+    -fx-min-width: 28px;
+    -fx-alignment: CENTER;
 }
 .picker__cell--red   { -fx-text-fill: #E8808C; }
 .picker__cell--black { -fx-text-fill: -pb-text-dim; }

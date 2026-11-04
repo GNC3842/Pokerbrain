@@ -33,23 +33,32 @@ public class AdviceCard extends VBox {
     private final Label raisonnement = new Label();
     private final Label alternatives = new Label();
 
+    /** Largeur maximale d'une tuile : au-delà, sa valeur passe à la ligne. */
+    private static final double TUILE_MAX = 250;
+
     public AdviceCard() {
         getStyleClass().addAll("panel", "advice-card");
         setSpacing(10);
+        // Sans ces deux zéros, la largeur minimale du carton est celle de sa tuile la plus
+        // large (« pot non ouvert, 3 adversaires, 100 BB de tapis ») : le carton devient
+        // plus large que sa colonne et déborde de la fenêtre, texte coupé à droite.
+        setMinWidth(0);
+        tuiles.setMinWidth(0);
+        tuiles.prefWrapLengthProperty().bind(widthProperty());
 
         joue.getStyleClass().add("verdict__played");
         recommande.getStyleClass().add("verdict__recommended");
         scoreLabel.getStyleClass().addAll("verdict__score", "num");
 
-        Label fleche = new Label("→");
-        fleche.getStyleClass().add("muted");
-        HBox entete = new HBox(10, joue, fleche, recommande);
-        entete.setAlignment(Pos.CENTER_LEFT);
-        HBox.setHgrow(recommande, Priority.ALWAYS);
+        // Verdict empilé : « Joué … → Conseillé … » sur une seule ligne dépassait la colonne
+        // de droite et finissait en « … », conseil compris.
+        joue.setWrapText(true);
+        recommande.setWrapText(true);
+        VBox entete = new VBox(2, joue, recommande);
 
         HBox ligneScore = new HBox(10, entete, scoreLabel);
         HBox.setHgrow(entete, Priority.ALWAYS);
-        ligneScore.setAlignment(Pos.CENTER_LEFT);
+        ligneScore.setAlignment(Pos.TOP_LEFT);
 
         jauge.getStyleClass().add("gauge__fill");
         piste.getStyleClass().add("gauge");
@@ -58,6 +67,12 @@ public class AdviceCard extends VBox {
 
         raisonnement.setWrapText(true);
         raisonnement.getStyleClass().add("advice");
+        // Le raisonnement prend la hauteur libre de la colonne : le carton la remplit au
+        // lieu de s'étaler en largeur sous un panneau à moitié vide.
+        raisonnement.setMaxHeight(Double.MAX_VALUE);
+        raisonnement.setAlignment(Pos.TOP_LEFT);
+        VBox.setVgrow(raisonnement, Priority.ALWAYS);
+        alternatives.setWrapText(true);
         alternatives.getStyleClass().add("faint");
 
         getChildren().addAll(ligneScore, piste, tuiles, raisonnement, alternatives);
@@ -150,6 +165,7 @@ public class AdviceCard extends VBox {
         Label v = new Label(valeur);
         v.getStyleClass().addAll("tile__value", "num");
         v.setWrapText(true);
+        v.setMaxWidth(TUILE_MAX);
         VBox box = new VBox(1, l, v);
         box.getStyleClass().add("tile");
         return box;
